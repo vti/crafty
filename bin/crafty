@@ -1,0 +1,78 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+my $root;
+
+BEGIN {
+    use File::Basename ();
+    use File::Spec     ();
+    $root = File::Spec->catfile(File::Basename::dirname(__FILE__), '..');
+
+    unshift @INC, "$root/lib";
+}
+
+use Plack::Runner;
+use Plack::Builder;
+use Plack::App::EventSource;
+use Plack::App::File;
+use Getopt::Long;
+use Crafty;
+
+my $opt_config = 'config.yml';
+my $opt_listen = '0.0.0.0:5000';
+GetOptions(
+    'config=s' => \$opt_config,
+    'listen=s' => \$opt_listen,
+) or die("Error in command line arguments\n");
+
+my $app = Crafty->new;
+
+my $psgi = builder {
+    mount '/events' => builder {
+        return Plack::App::EventSource->new(
+            headers => [
+
+                #'Access-Control-Allow-Origin',
+                #'http://localhost:5000',
+                'Access-Control-Allow-Credentials',
+                'true'
+            ],
+            handler_cb => sub {
+                my ($conn, $env) = @_;
+
+                $app->new_conn($conn, $env);
+            }
+        )->to_app;
+    };
+
+    mount '/hook' => builder {
+        return sub {
+            my ($env) = @_;
+
+            return $app->hook($env);
+        };
+    };
+
+    mount '/' => builder {
+        enable_if { $_[0]->{REMOTE_ADDR} eq '127.0.0.1' }
+        'Plack::Middleware::ReverseProxy';
+
+        enable "Plack::Middleware::Static",
+          path => qr{^/(img|js|css)/},
+          root => "$root/public";
+
+        return $app->to_psgi;
+    };
+};
+
+warn "Listening on $opt_listen\n";
+
+my $runner = Plack::Runner->new;
+$runner->parse_options(
+    '-s' => 'Twiggy',
+    '-E' => 'production',
+    '-l' => $opt_listen
+);
+$runner->run($psgi);
