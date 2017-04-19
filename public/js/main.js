@@ -26,7 +26,7 @@
 
             $(el).height($(window).height() - 150);
 
-            var es = events.connect('/tail', function(ev) {
+            var es = events.connect('/tail/' + build, function(ev) {
                 if (ev.type == 'output') {
                     var data = ev.data.replace(/\\n/g, "\n");
                     $(el).append(data);

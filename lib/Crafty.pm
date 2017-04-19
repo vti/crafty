@@ -5,6 +5,8 @@ use warnings;
 
 use AnyEvent;
 use AnyEvent::Fork;
+use Class::Load ();
+use Routes::Tiny;
 use Text::Caml;
 use JSON       ();
 use Data::UUID ();
@@ -20,7 +22,6 @@ sub new {
 
     $self->{root}        = $params{root};
     $self->{connections} = {};
-    $self->{workers}     = {};
     $self->{db}          = Crafty::DB->new(dbpath => "$self->{root}/data/db.db");
 
     return $self;
@@ -48,180 +49,51 @@ sub new_conn {
     };
 }
 
-sub tail {
-    my $self = shift;
-    my ($conn, $env) = @_;
-
-    my $connections = $self->{tails};
-
-    my $tail = Crafty::Tail->new;
-    $tail->tail(
-        '/tmp/tail',
-        on_error => sub {
-            warn 'error';
-            $conn->push(JSON::encode_json({type => 'error'}));
-            $conn->close;
-            delete $connections->{"$conn"};
-        },
-        on_eof => sub {
-            warn 'eof';
-            $conn->push(JSON::encode_json({type => 'eof'}));
-            $conn->close;
-            delete $connections->{"$conn"};
-        },
-        on_read => sub {
-            my ($content) = @_;
-
-            $content =~ s{\n}{\\n}g;
-
-            $conn->push(JSON::encode_json({type => 'output', data => $content}));
-        }
-    );
-
-    $connections->{"$conn"} = {
-        conn      => $conn,
-        tail      => $tail,
-        heartbeat => AnyEvent->timer(
-            interval => 30,
-            cb       => sub {
-                eval {
-                    $conn->push('');
-                    1;
-                } or do {
-                    delete $connections->{"$conn"};
-                };
-            }
-        )
-    };
-}
-
-sub hook {
-    my $self = shift;
-    my ($env) = @_;
-
-    my $id = $self->_generate_id;
-
-    $self->{db}->insert();
-
-    AnyEvent::Fork->new->require('Crafty::Worker')
-      ->send_arg('seq 1 10 | while read i; do date; sleep 1; done')->run(
-        'Crafty::Worker::work',
-        sub {
-            my ($fh) = @_;
-
-            my $io;
-            $io = AnyEvent::Handle->new(
-                fh       => $fh,
-                on_error => sub {
-                    my ($hdl, $fatal, $msg) = @_;
-
-                    delete $self->{workers}->{"$io"};
-
-                    warn 'ERORR';
-
-                    $hdl->destroy;
-                },
-                on_eof => sub {
-                    my ($hdl) = @_;
-
-                    delete $self->{workers}->{"$io"};
-
-                    warn 'EOF';
-
-                    $hdl->destroy;
-                }
-            );
-
-            $self->{workers}->{"$io"} = $io;
-
-            $io->on_read(
-                sub {
-                    my $output = $_[0]->rbuf;
-                    $_[0]->rbuf = '';
-
-                    $self->broadcast('build.status', $id, {output => $output});
-                }
-            );
-
-        }
-      );
-
-    return [200, [], ['ok']];
-}
-
 sub to_psgi {
     my $self = shift;
 
-    my $view = Text::Caml->new(templates_path => "$root/templates");
+    my $routes = Routes::Tiny->new;
+
+    $routes->add_route('/',                     name => 'Index');
+    $routes->add_route('/builds/:build_id',     name => 'Build');
+    $routes->add_route('/tail/:build_id',       name => 'Tail');
+    $routes->add_route('/hooks/:app/:provider', name => 'Hook');
+
+    my $view = Text::Caml->new(templates_path => "$self->{root}/templates");
 
     return sub {
         my ($env) = @_;
 
         my $path_info = $env->{PATH_INFO};
 
-        my $content;
-        if ($path_info =~ m{^/builds/(.*)}) {
-            my $id = $1;
+        my $match = $routes->match($path_info);
 
-            return sub {
-                my $respond = shift;
+        if ($match) {
+            my $action = $self->_build_action(
+                $match->name,
+                env  => $env,
+                view => $view,
+                root => $self->{root},
+                db   => $self->{db}
+            );
 
-                $self->{db}->build(
-                    $id,
-                    sub {
-                        my ($build) = @_;
-
-                        if ($build) {
-                            $content = $view->render_file('build.caml',
-                                {build => $build});
-
-                            my $output = $view->render_file('layout.caml',
-                                {content => $content});
-
-                            $respond->([200, [], [$output]]);
-                        }
-                        else {
-                            $respond->([404, [], ['Not found']]);
-                        }
-                    }
-                );
-
-            };
-        }
-        elsif ($path_info eq '/') {
-            return sub {
-                my $respond = shift;
-
-                $self->{db}->builds(
-                    sub {
-                        my ($builds) = @_;
-
-                        $content = $view->render_file(
-                            'index.caml',
-                            {
-                                title  => 'Hello',
-                                body   => 'there!',
-                                builds => $builds
-                            }
-                        );
-
-                        my $output = $view->render_file('layout.caml',
-                            {content => $content});
-
-                        $respond->([200, [], [$output]]);
-                    }
-                );
-
-            };
+            return $action->run(%{$match->captures || {}});
         }
         else {
-            return [404, [], ['Not found']];
+            return [404, [], ['Not Found']];
         }
-
-        #my $output = $view->render_file('layout.caml', {content => $content});
-
-        #return [200, [], [$output]];
     };
+}
+
+sub _build_action {
+    my $self = shift;
+    my ($action, @args) = @_;
+
+    my $action_class = __PACKAGE__ . '::Action::' . $action;
+
+    Class::Load::load_class($action_class);
+
+    return $action_class->new(@args);
 }
 
 sub broadcast {
@@ -255,11 +127,6 @@ sub _broadcast {
             $conn->close;
         };
     }
-}
-
-sub _generate_id {
-    my $id = my $uuid = Data::UUID->new;
-    return lc($uuid->to_string($uuid->create));
 }
 
 1;
