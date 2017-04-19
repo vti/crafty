@@ -9,6 +9,7 @@ use Text::Caml;
 use JSON       ();
 use Data::UUID ();
 use Crafty::DB;
+use Crafty::Tail;
 
 sub new {
     my $class = shift;
@@ -17,11 +18,10 @@ sub new {
     my $self = {};
     bless $self, $class;
 
-    my $root = $params{root};
-
+    $self->{root}        = $params{root};
     $self->{connections} = {};
     $self->{workers}     = {};
-    $self->{db}          = Crafty::DB->new(dbpath => "$root/data/db.db");
+    $self->{db}          = Crafty::DB->new(dbpath => "$self->{root}/data/db.db");
 
     return $self;
 }
@@ -48,6 +48,53 @@ sub new_conn {
     };
 }
 
+sub tail {
+    my $self = shift;
+    my ($conn, $env) = @_;
+
+    my $connections = $self->{tails};
+
+    my $tail = Crafty::Tail->new;
+    $tail->tail(
+        '/tmp/tail',
+        on_error => sub {
+            warn 'error';
+            $conn->push(JSON::encode_json({type => 'error'}));
+            $conn->close;
+            delete $connections->{"$conn"};
+        },
+        on_eof => sub {
+            warn 'eof';
+            $conn->push(JSON::encode_json({type => 'eof'}));
+            $conn->close;
+            delete $connections->{"$conn"};
+        },
+        on_read => sub {
+            my ($content) = @_;
+
+            $content =~ s{\n}{\\n}g;
+
+            $conn->push(JSON::encode_json({type => 'output', data => $content}));
+        }
+    );
+
+    $connections->{"$conn"} = {
+        conn      => $conn,
+        tail      => $tail,
+        heartbeat => AnyEvent->timer(
+            interval => 30,
+            cb       => sub {
+                eval {
+                    $conn->push('');
+                    1;
+                } or do {
+                    delete $connections->{"$conn"};
+                };
+            }
+        )
+    };
+}
+
 sub hook {
     my $self = shift;
     my ($env) = @_;
@@ -57,7 +104,7 @@ sub hook {
     $self->{db}->insert();
 
     AnyEvent::Fork->new->require('Crafty::Worker')
-      ->send_arg('date; sleep 1; date; sleep 1; date')->run(
+      ->send_arg('seq 1 10 | while read i; do date; sleep 1; done')->run(
         'Crafty::Worker::work',
         sub {
             my ($fh) = @_;
@@ -114,16 +161,66 @@ sub to_psgi {
 
         my $content;
         if ($path_info =~ m{^/builds/(.*)}) {
-            $content = 'build';
+            my $id = $1;
+
+            return sub {
+                my $respond = shift;
+
+                $self->{db}->build(
+                    $id,
+                    sub {
+                        my ($build) = @_;
+
+                        if ($build) {
+                            $content = $view->render_file('build.caml',
+                                {build => $build});
+
+                            my $output = $view->render_file('layout.caml',
+                                {content => $content});
+
+                            $respond->([200, [], [$output]]);
+                        }
+                        else {
+                            $respond->([404, [], ['Not found']]);
+                        }
+                    }
+                );
+
+            };
+        }
+        elsif ($path_info eq '/') {
+            return sub {
+                my $respond = shift;
+
+                $self->{db}->builds(
+                    sub {
+                        my ($builds) = @_;
+
+                        $content = $view->render_file(
+                            'index.caml',
+                            {
+                                title  => 'Hello',
+                                body   => 'there!',
+                                builds => $builds
+                            }
+                        );
+
+                        my $output = $view->render_file('layout.caml',
+                            {content => $content});
+
+                        $respond->([200, [], [$output]]);
+                    }
+                );
+
+            };
         }
         else {
-            $content = $view->render_file('index.caml',
-                {title => 'Hello', body => 'there!'});
+            return [404, [], ['Not found']];
         }
 
-        my $output = $view->render_file('layout.caml', {content => $content});
+        #my $output = $view->render_file('layout.caml', {content => $content});
 
-        return [200, [], [$output]];
+        #return [200, [], [$output]];
     };
 }
 

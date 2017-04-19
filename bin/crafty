@@ -50,6 +50,23 @@ my $psgi = builder {
         )->to_app;
     };
 
+    mount '/tail' => builder {
+        return Plack::App::EventSource->new(
+            headers => [
+
+                #'Access-Control-Allow-Origin',
+                #'http://localhost:5000',
+                'Access-Control-Allow-Credentials',
+                'true'
+            ],
+            handler_cb => sub {
+                my ($conn, $env) = @_;
+
+                $app->tail($conn, $env);
+            }
+        )->to_app;
+    };
+
     mount '/hook' => builder {
         return sub {
             my ($env) = @_;
@@ -63,7 +80,7 @@ my $psgi = builder {
         'Plack::Middleware::ReverseProxy';
 
         enable "Plack::Middleware::Static",
-          path => qr{^/(img|js|css)/},
+          path => qr{^/(img|js|css|fonts)/},
           root => "$root/public";
 
         return $app->to_psgi;

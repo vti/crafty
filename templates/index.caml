@@ -1,3 +1,52 @@
-<div class="">
-hi
+<div class="col-sm-12 col-md-12 main">
+    <ol class="breadcrumb">
+        <li class="active">Builds</li>
+    </ol>
+
+    <div class="table-responsive">
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>
+                        Build
+                    </th>
+                    <th>
+                        Status
+                    </th>
+                    <th>
+                        Started
+                    </th>
+                    <th>
+                        Elapsed
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#builds}}
+                <tr>
+                    <td>
+                        <a href="/builds/{{uuid}}">{{message}}</a>
+                        <div>
+                            <span class="glyphicon glyphicon-user"></span>
+                            {{author}}
+
+                            {{rev}} {{branch}}
+                        </div>
+                    </td>
+                    <td>
+                        {{status}}
+                    </td>
+                    <td>
+                        {{started}}
+                    </td>
+                    <td>
+                        {{duration}}
+                    </td>
+                </tr>
+                {{/builds}}
+            </tbody>
+        </table>
+
+    </div>
 </div>

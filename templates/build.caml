@@ -1,0 +1,23 @@
+<div class="col-sm-12 col-md-4">
+
+    <ol class="breadcrumb">
+        <li><a href="/">Builds</a></li>
+        <li class="active">{{build.uuid}}</li>
+    </ol>
+
+    <div class="panel panel-success">
+        <div class="panel-heading">
+            {{build.status}}
+        </div>
+        <div class="panel-body">
+
+            <span class="glyphicon glyphicon-time"></span> {{build.duration}}
+
+        </div>
+    </div>
+
+</div>
+
+<div class="col-sm-12 col-md-8">
+    <pre class="console" data-build="{{build.uuid}}"></pre>
+</div>

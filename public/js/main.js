@@ -17,8 +17,26 @@
             }
         });
 
-        events.connect('/events', function(data) {
-            eventBus.publish(data.type, data.data);
+        //events.connect('/events', function(data) {
+            //eventBus.publish(data.type, data.data);
+        //});
+
+        $('.console').each(function(index, el) {
+            var build = $(el).data('build');
+
+            $(el).height($(window).height() - 150);
+
+            var es = events.connect('/tail', function(ev) {
+                if (ev.type == 'output') {
+                    var data = ev.data.replace(/\\n/g, "\n");
+                    $(el).append(data);
+                }
+                else {
+                    es.close();
+                }
+
+                $(el).scrollTop($(el)[0].scrollHeight);
+            });
         });
     });
 })();

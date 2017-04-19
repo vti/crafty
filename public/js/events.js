@@ -24,11 +24,13 @@ define(["/js/lib/EventSource.js"], function() {
         es.addEventListener("open", listener);
         es.addEventListener("message", listener);
         es.addEventListener("error", listener);
+
+        return es;
     }
 
     return {
         connect: function(url, handler) {
-            openEvents(url, handler, 1000);
+            return openEvents(url, handler, 1000);
         }
     }
 });
