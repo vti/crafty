@@ -12,13 +12,16 @@ use Crafty::DB;
 
 sub new {
     my $class = shift;
+    my (%params) = @_;
 
     my $self = {};
     bless $self, $class;
 
+    my $root = $params{root};
+
     $self->{connections} = {};
     $self->{workers}     = {};
-    $self->{db}          = Crafty::DB->new;
+    $self->{db}          = Crafty::DB->new(dbpath => "$root/data/db.db");
 
     return $self;
 }
@@ -102,7 +105,7 @@ sub hook {
 sub to_psgi {
     my $self = shift;
 
-    my $view = Text::Caml->new(templates_path => 'templates');
+    my $view = Text::Caml->new(templates_path => "$root/templates");
 
     return sub {
         my ($env) = @_;

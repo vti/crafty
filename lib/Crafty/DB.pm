@@ -8,11 +8,14 @@ use SQL::Composer ':funcs';
 
 sub new {
     my $class = shift;
+    my (%params) = @_;
 
     my $self = {};
     bless $self, $class;
 
-    my $dbh = new AnyEvent::DBI "dbi:SQLite:dbname=/home/vti/dev/crafty/db.db", "", "";
+    my $dbpath = $params{dbpath};
+
+    my $dbh = new AnyEvent::DBI "dbi:SQLite:dbname=$dbpath", "", "";
     $self->{dbh} = $dbh;
 
     return $self;

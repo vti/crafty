@@ -4,12 +4,15 @@ use strict;
 use warnings;
 
 my $root;
+use Config;
 
 BEGIN {
     use File::Basename ();
     use File::Spec     ();
-    $root = File::Spec->catfile(File::Basename::dirname(__FILE__), '..');
+    $root = File::Spec->catfile( File::Basename::dirname(__FILE__), '..' );
 
+    unshift @INC, "$root/perl5/lib/perl5"                   if -d "$root/perl5";
+    unshift @INC, "$root/perl5/lib/perl5/$Config{archname}" if -d "$root/perl5";
     unshift @INC, "$root/lib";
 }
 
@@ -27,7 +30,7 @@ GetOptions(
     'listen=s' => \$opt_listen,
 ) or die("Error in command line arguments\n");
 
-my $app = Crafty->new;
+my $app = Crafty->new(root => $root);
 
 my $psgi = builder {
     mount '/events' => builder {
@@ -40,9 +43,9 @@ my $psgi = builder {
                 'true'
             ],
             handler_cb => sub {
-                my ($conn, $env) = @_;
+                my ( $conn, $env ) = @_;
 
-                $app->new_conn($conn, $env);
+                $app->new_conn( $conn, $env );
             }
         )->to_app;
     };
