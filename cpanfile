@@ -15,3 +15,4 @@ requires 'DBD::SQLite';
 requires 'Text::Caml';
 requires 'Data::UUID';
 requires 'Input::Validator';
+requires 'YAML::Tiny';

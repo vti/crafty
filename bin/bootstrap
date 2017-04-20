@@ -1,3 +1,3 @@
 #!/bin/sh
 
-PERL5LIB=".:$PERL5LIB" bin/cpanm -q -n --installdeps -L perl5 .
+PERL5LIB=".:$PERL5LIB" util/cpanm -q -n --installdeps -L perl5 .

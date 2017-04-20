@@ -16,7 +16,7 @@ sub run {
     my $app      = $params{app};
     my $provider = $params{provider};
 
-    my $app_config_file = "$self->{root}/apps/$app.yml";
+    my $app_config_file = "$self->{root}/data/apps/$app.yml";
     return [404, [], ["Unknown application `$app`"]] unless -f $app_config_file;
 
     my $yaml       = YAML::Tiny->read($app_config_file);
