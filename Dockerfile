@@ -10,7 +10,7 @@ COPY public/ /opt/crafty/public/
 COPY templates/ /opt/crafty/templates/
 COPY cpanfile /opt/crafty/
 
-RUN cd /opt/crafty/; PERL5LIB=".:$PERL5LIB" bin/cpanm -q -n --installdeps -L perl5 .
+RUN cd /opt/crafty/; bin/bootstrap
 
 EXPOSE 5000
 
