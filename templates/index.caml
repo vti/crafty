@@ -38,10 +38,10 @@
                         {{status}}
                     </td>
                     <td>
-                        {{started}}
+                        <div title="{{started}}" class="date-relative">{{started}}</div>
                     </td>
                     <td>
-                        {{duration}}
+                        <div title="{{duration}}" class="time-duration">{{duration}}</div>
                     </td>
                 </tr>
                 {{/builds}}

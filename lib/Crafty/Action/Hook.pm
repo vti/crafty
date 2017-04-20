@@ -44,8 +44,6 @@ sub run {
             %$params,
             'uuid'    => $uuid,
             'app'     => $app,
-            'started' => time,
-            'status'  => 'P',
             sub {
                 my ($id) = @_;
 

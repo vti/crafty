@@ -7,6 +7,7 @@ requires 'AnyEvent';
 requires 'AnyEvent::Fork';
 requires 'AnyEvent::DBI';
 
+requires 'Time::Moment';
 requires 'Class::Load';
 requires 'JSON';
 requires 'Routes::Tiny';

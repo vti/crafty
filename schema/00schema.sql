@@ -8,8 +8,9 @@ CREATE TABLE builds (
  author text NOT NULL,
  message text NOT NULL,
  status char(1) NOT NULL DEFAULT 'N',
- stream varchar(255) NOT NULL DEFAULT '',
- started int NOT NULL,
- finished int NOT NULL DEFAULT 0,
- duration int NOT NULL DEFAULT 0
+ pid int NOT NULL DEFAULT 0,
+
+ started text NOT NULL,
+ finished text NOT NULL DEFAULT '',
+ duration real NOT NULL DEFAULT 0.0
 );
