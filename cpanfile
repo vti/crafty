@@ -1,11 +1,7 @@
-requires 'Plack';
-requires 'Plack::App::EventSource';
-requires 'Plack::Middleware::ReverseProxy';
-requires 'Twiggy';
-
 requires 'AnyEvent';
 requires 'AnyEvent::Fork';
 requires 'AnyEvent::DBI';
+requires 'EV';
 
 requires 'Time::Moment';
 requires 'Class::Load';
@@ -17,3 +13,8 @@ requires 'Text::Caml';
 requires 'Data::UUID';
 requires 'Input::Validator';
 requires 'YAML::Tiny';
+
+requires 'Plack';
+requires 'Plack::App::EventSource';
+requires 'Plack::Middleware::ReverseProxy';
+requires 'Twiggy';

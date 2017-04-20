@@ -25,8 +25,6 @@ sub run {
                 my ($build) = @_;
 
                 if ($build) {
-                    my $stream = "$self->{root}/data/builds/$build->{uuid}.log";
-
                     my $cb = Plack::App::EventSource->new(
                         headers => [
 
@@ -37,6 +35,8 @@ sub run {
                         ],
                         handler_cb => sub {
                             my ($conn, $env) = @_;
+
+                            my $stream = "$self->{root}/data/builds/$build->{uuid}.log";
 
                             $self->tail($conn, $stream);
                         }
@@ -99,5 +99,7 @@ sub tail {
         )
     };
 }
+
+sub DESTROY { "ACTION TAIL DESTROY" }
 
 1;

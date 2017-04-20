@@ -9,6 +9,9 @@
             <thead>
                 <tr>
                     <th>
+                        App
+                    </th>
+                    <th>
                         Build
                     </th>
                     <th>
@@ -22,9 +25,12 @@
                     </th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody data-event="build.new" data-method="prepend">
                 {{#builds}}
                 <tr>
+                    <td>
+                        {{app}}
+                    </td>
                     <td>
                         <a href="/builds/{{uuid}}">{{message}}</a>
                         <div>
@@ -35,13 +41,47 @@
                         </div>
                     </td>
                     <td>
-                        {{status}}
+                        <span class="label label-{{status_display}}"
+                              data-event="build"
+                              data-uuid="{{uuid}}"
+                              data-key="status_display"
+                              data-method="replace_class"
+                              data-prefix="label-">
+                            <span
+                              data-event="build"
+                              data-uuid="{{uuid}}"
+                              data-key="status_name"
+                              data-method="text">
+                                {{status_name}}
+                            </span>
+                        </span>
+
+                        <img src="/img/loader.gif"
+                             class="{{^is_cancelable}}hidden{{/is_cancelable}}"
+                             data-event="build"
+                             data-uuid="{{uuid}}"
+                             data-key="is_cancelable"
+                             data-method="toggle"
+                             width="16"
+                             height="16"
+                             />
+
                     </td>
                     <td>
-                        <div title="{{started}}" class="date-relative">{{started}}</div>
+                        <div title="{{started}}"
+                             data-event="build"
+                             data-uuid="{{uuid}}"
+                             data-key="started"
+                             data-method="text"
+                             class="date-relative">{{started}}</div>
                     </td>
                     <td>
-                        <div title="{{duration}}" class="time-duration">{{duration}}</div>
+                        <div title="{{duration}}"
+                             data-event="build"
+                             data-uuid="{{uuid}}"
+                             data-key="duration"
+                             data-method="text"
+                            class="time-duration">{{duration}}</div>
                     </td>
                 </tr>
                 {{/builds}}

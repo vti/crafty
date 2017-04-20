@@ -5,9 +5,10 @@ use warnings;
 
 use parent 'Crafty::Action::Base';
 
-use YAML::Tiny;
+use Data::UUID;
 use Plack::Request;
-use Crafty::Runner;
+use Crafty::AppConfig;
+use Crafty::Builder;
 
 sub run {
     my $self = shift;
@@ -16,11 +17,8 @@ sub run {
     my $app      = $params{app};
     my $provider = $params{provider};
 
-    my $app_config_file = "$self->{root}/data/apps/$app.yml";
-    return [404, [], ["Unknown application `$app`"]] unless -f $app_config_file;
-
-    my $yaml       = YAML::Tiny->read($app_config_file);
-    my $app_config = $yaml->[0];
+    my $app_config = Crafty::AppConfig->new(root => $self->{root})->load($app);
+    return [404, [], ["Unknown application `$app`"]] unless $app_config;
 
     if (!grep { $_->{provider} eq $provider } @{$app_config->{hooks} || []}) {
         return [404, [], ['Unknown hook provider']];
@@ -34,42 +32,27 @@ sub run {
 
     my $uuid = $self->_generate_id;
 
-    my $build_dir = "$self->{root}/data/builds/$uuid";
-    my $stream    = "$self->{root}/data/builds/$uuid.log";
-
     return sub {
         my $respond = shift;
 
         $self->db->insert(
             %$params,
-            'uuid'    => $uuid,
-            'app'     => $app,
+            'uuid' => $uuid,
+            'app'  => $app,
             sub {
                 my ($id) = @_;
 
-                my $runner = Crafty::Runner->new(
-                    build_dir => $build_dir,
-                    stream    => $stream
+                $self->broadcast('build.new', {});
+
+                my $builder = Crafty::Builder->new(
+                    app_config => $app_config,
+                    root => $self->{root},
+                    db   => $self->db
                 );
-                $self->{runner} = $runner;
 
-                foreach my $action (@{$app_config->{build}}) {
-                    my ($key, $value) = %$action;
+                $builder->build($uuid);
 
-                    if ($key eq 'run') {
-                        $runner->run(
-                            cmd    => [$value],
-                            on_error => sub {
-                                $self->db->finish($id, status => 'E', sub {});
-                            },
-                            on_eof => sub {
-                                my ($exit_code) = @_;
-
-                                $self->db->finish($id, status => $exit_code ? 'F': 'S', sub {});
-                            }
-                        );
-                    }
-                }
+                $self->{builder} = $builder;
 
                 $respond->([200, [], ['ok']]);
             }

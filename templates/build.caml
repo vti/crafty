@@ -5,13 +5,61 @@
         <li class="active">{{build.uuid}}</li>
     </ol>
 
-    <div class="panel panel-success">
+    <div class="panel panel-{{build.status_display}}"
+          data-event="build"
+          data-uuid="{{build.uuid}}"
+          data-key="status_display"
+          data-method="replace_class"
+          data-prefix="panel-">
         <div class="panel-heading">
-            {{build.status}}
+            <span
+             data-event="build"
+             data-uuid="{{build.uuid}}"
+             data-key="status_name"
+             data-method="text">{{build.status_name}}</span>
+
+            <img src="/img/loader.gif"
+                 class="{{^build.is_cancelable}}hidden{{/build.is_cancelable}}"
+                 data-event="build"
+                 data-uuid="{{build.uuid}}"
+                 data-key="is_cancelable"
+                 data-method="toggle" />
+
+            <span class="pull-right">
+                <div class="{{^build.is_cancelable}}hidden{{/build.is_cancelable}}"
+                     data-event="build"
+                     data-uuid="{{build.uuid}}"
+                     data-key="is_cancelable"
+                     data-method="toggle">
+                    <form method="POST" action="/cancel/{{build.uuid}}" class="ajax">
+                        <button class="btn btn-xs btn-danger">
+                            <span class="glyphicon glyphicon-remove"></span> cancel
+                        </button>
+                    </form>
+                </div>
+
+                <div class="{{^build.is_restartable}}hidden{{/build.is_restartable}}"
+                     data-event="build"
+                     data-uuid="{{build.uuid}}"
+                     data-key="is_restartable"
+                     data-method="toggle">
+                    <form method="POST" action="/restart/{{build.uuid}}" class="ajax">
+                        <button class="btn btn-xs btn-success">
+                            <span class="glyphicon glyphicon-repeat"></span> rebuild
+                        </button>
+                    </form>
+                </div>
+            </span>
         </div>
         <div class="panel-body">
 
-            <span class="glyphicon glyphicon-time"></span> {{build.duration}}
+            <span class="glyphicon glyphicon-time"></span>
+
+            <span
+             data-event="build"
+             data-uuid="{{build.uuid}}"
+             data-key="duration"
+             data-method="text">{{build.duration}}</span>
 
         </div>
     </div>

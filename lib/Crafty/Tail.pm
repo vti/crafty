@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use AnyEvent::Handle;
+use AnyEvent::Fork;
 
 sub new {
     my $class = shift;
@@ -19,15 +20,13 @@ sub tail {
     my ($path, %params) = @_;
 
     AnyEvent::Fork->new->eval('
-               # compile a helper function for later use
                sub run {
                   my ($fh, @cmd) = @_;
 
-                  # perl will clear close-on-exec on STDOUT/STDERR
                   open STDOUT, ">&", $fh or die;
                   #open STDERR, ">&", $fh or die;
 
-                  exec @cmd;
+                  exec @cmd or die $!;
                }
             ')->send_arg('tail', '-f', '-n', '+1', $path)->run(
         'run',
@@ -38,12 +37,16 @@ sub tail {
             $handle = AnyEvent::Handle->new(
                 fh       => $fh,
                 on_error => sub {
+                    my ($handle, $fatal, $msg) = @_;
+
                     $handle->destroy;
+                    delete $self->{handle};
 
                     $params{on_error}->();
                 },
                 on_eof => sub {
                     $handle->destroy;
+                    delete $self->{handle};
 
                     $params{on_eof}->();
                 },
@@ -62,5 +65,7 @@ sub tail {
 
     return $self;
 }
+
+sub DESTROY { "TAIL DESTROY" }
 
 1;

@@ -5,6 +5,7 @@ use warnings;
 
 use File::Path qw(make_path);
 use File::Basename qw(dirname);
+use File::Temp qw(tempfile);
 use IO::Handle;
 use AnyEvent::Fork;
 use AnyEvent::Handle;
@@ -33,8 +34,8 @@ sub run {
     open my $stream, '>', $self->{stream}
       or die "Can't create `$self->{stream}`: $!";
 
-  use File::Temp qw(tempfile);
-  my $tmp = tempfile();
+    my $tmp = tempfile();
+    $tmp->autoflush(1);
 
     $stream->autoflush(1);
 
@@ -54,9 +55,18 @@ sub run {
 
                   print @cmd, "\n";
 
-                  system(@cmd) or die $!;
+                  system(@cmd);
 
-                  print $ex $?;
+                  my $exit_code = $?;
+                  $exit_code >>= 8;
+
+                  print $ex $exit_code;
+
+                  print "\nExit code: $exit_code\n";
+
+                  close $ex;
+                  close $fh;
+                  exit $exit_code;
                }
             ');
     $fork->send_fh($tmp);
@@ -69,7 +79,6 @@ sub run {
             my $pid;
 
             my $handle;
-            my $w;
             $handle = AnyEvent::Handle->new(
                 fh       => $fh,
                 on_error => sub {
@@ -94,6 +103,14 @@ sub run {
 
                     $_[0]->rbuf = '';
 
+                    if (!$pid) {
+                        ($pid) = $content =~ m/^PID=(\d+)/;
+
+                        if ($pid) {
+                            $params{on_pid}->($pid);
+                        }
+                    }
+
                     print $stream $content;
                 },
             );
@@ -102,7 +119,7 @@ sub run {
         }
     );
 
-    return $stream;
+    return;
 }
 
 1;
