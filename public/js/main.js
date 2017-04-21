@@ -1,19 +1,22 @@
 (function() {
-    require(['/js/eventbus.js', '/js/events.js', '/js/lib/moment.min.js'], function(eventBus, events, moment) {
-        $('.time-duration').each(function() {
+    require(['/js/eventbus.js', '/js/events.js', '/js/lib/moment.min.js', '/js/lib/mustache.min.js'], function(eventBus, events, moment, mustache) {
+        $('.time-duration:visible').each(function() {
             var $self = $(this);
-            $self.text(moment.duration($self.text() * 1000).humanize(), 'seconds');
+            if ($self.text()){
+                $self.text(moment.duration($self.text() * 1000).humanize(), 'seconds');
+                //$self.removeClass('time-duration');
+            }
         });
-        $('.date-relative').each(function() {
+        $('.date-relative:visible').each(function() {
             var $self = $(this);
-            $self.text(moment($self.text()).fromNow());
+            if ($self.text()){
+                $self.text(moment($self.text()).fromNow());
+                //$self.removeClass('date-relative');
+            }
         });
 
         eventBus.subscribe('*', function(ev, data) {
-            console.log(ev);
-            console.log(data);
-
-            $('[data-event="' + ev + '"]' + (data.uuid ? '[data-uuid="' + data.uuid + '"]' : '')).each(function(index, el) {
+            $('[data-event="' + ev + '"]' + (!data.is_new && data.uuid ? '[data-uuid="' + data.uuid + '"]' : '')).each(function(index, el) {
                 var key = $(el).data('key');
                 var method = $(el).data('method');
 
@@ -37,9 +40,14 @@
                             return className.replace(re, ' ' + prefix + value);
                         });
                     }
-                }
-                else if (method == 'prepend') {
-                    $(el).prepend('<tr><td>hi there</td></tr>')
+                } else if (method == 'prepend') {
+                    var templateName = $(el).data('template');
+
+                    var template = $(templateName).clone();
+
+                    var rendered = mustache.render(template.html(), data);
+
+                    $(el).prepend(rendered);
                 }
             });
         });
@@ -57,8 +65,7 @@
                 if (ev.type == 'output') {
                     var data = ev.data.replace(/\\n/g, "\n");
                     $(el).append(data);
-                }
-                else {
+                } else {
                     es.close();
                 }
 

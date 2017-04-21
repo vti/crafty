@@ -173,6 +173,7 @@ subtest 'to_hash: serializes' => sub {
         finished => re(qr/2017-01-02/),
         duration => re(qr/1\.2/),
 
+        is_new         => '1',
         is_restartable => '',
         is_cancelable  => 1,
 

@@ -205,6 +205,7 @@ sub to_hash {
         status_name    => $self->status_name,
         status_display => $self->status_display,
 
+        is_new => $self->is_new,
         is_cancelable  => $self->is_cancelable,
         is_restartable => $self->is_restartable,
 

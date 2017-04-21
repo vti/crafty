@@ -46,7 +46,10 @@ sub save {
                     'last_insert_id' => sub {
                         my ($dbh, $id, $error) = @_;
 
+                        $self->_broadcast('build.new', $build->to_hash);
+
                         $build->not_new;
+
                         $deferred->resolve($build);
                     }
                 );

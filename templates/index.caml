@@ -25,68 +25,18 @@
                     </th>
                 </tr>
             </thead>
-            <tbody data-event="build.new" data-method="prepend">
+            <tbody data-event="build.new" data-method="prepend" data-template=".template tbody">
                 {{#builds}}
-                <tr>
-                    <td>
-                        {{app}}
-                    </td>
-                    <td>
-                        <a href="/builds/{{uuid}}">{{message}}</a>
-
-                        <img src="/img/loader.gif"
-                             class="{{^is_cancelable}}hidden{{/is_cancelable}}"
-                             data-event="build"
-                             data-uuid="{{uuid}}"
-                             data-key="is_cancelable"
-                             data-method="toggle"
-                             width="16"
-                             height="16"
-                             />
-
-                        <div>
-                            <span class="glyphicon glyphicon-user"></span>
-                            {{author}}
-
-                            {{rev}} {{branch}}
-                        </div>
-                    </td>
-                    <td>
-                        <span class="label label-{{status_display}}"
-                              data-event="build"
-                              data-uuid="{{uuid}}"
-                              data-key="status_display"
-                              data-method="replace_class"
-                              data-prefix="label-">
-                            <span
-                              data-event="build"
-                              data-uuid="{{uuid}}"
-                              data-key="status_name"
-                              data-method="text">
-                                {{status_name}}
-                            </span>
-                        </span>
-                    </td>
-                    <td>
-                        <div title="{{started}}"
-                             data-event="build"
-                             data-uuid="{{uuid}}"
-                             data-key="started"
-                             data-method="text"
-                             class="date-relative">{{started}}</div>
-                    </td>
-                    <td>
-                        <div title="{{duration}}"
-                             data-event="build"
-                             data-uuid="{{uuid}}"
-                             data-key="duration"
-                             data-method="text"
-                            class="time-duration">{{duration}}</div>
-                    </td>
-                </tr>
+                {{>include/build.caml}}
                 {{/builds}}
             </tbody>
         </table>
+
+        <div class="template hidden">
+        <table>
+            {{>&include/build.caml}}
+        </table>
+        </div>
 
     </div>
 </div>
