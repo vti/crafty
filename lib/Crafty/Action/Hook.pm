@@ -33,40 +33,48 @@ sub run {
     return sub {
         my $respond = shift;
 
-        my $build = Crafty::Build->new(app => $app);
+        my $build = Crafty::Build->new(app => $app, %$params);
 
-        $build->start;
+        $build->init;
 
-        $self->db->save($build,
+        $self->db->save($build)->then(
             sub {
                 my ($build) = @_;
 
                 my $builder = Crafty::Builder->new(
                     app_config => $app_config,
-                    root => $self->{root},
-                    db   => $self->db
-                );
-
-                $builder->build(
-                    $build,
-                    sub {
-                        my ($status) = @_;
-
-                        $build->finish($status);
-
-                        $self->db->save(
-                            $build,
-                            sub {
-                                $respond->([200, [], ['ok']]);
-                            }
-                        );
-                    }
+                    root       => $self->{root}
                 );
 
                 $self->{builder} = $builder;
 
+                my $promise = $builder->build(
+                    $build,
+                    on_pid => sub {
+                        my ($pid) = @_;
+
+                        $build->start($pid);
+
+                        $self->db->save($build);
+                    }
+                );
+
+                $respond->([200, [], ['ok']]);
+
+                return $promise;
+            },
+            sub {
+                $respond->([500, [], ['error']]);
             }
-        );
+          )->then(
+            sub {
+                my ($build, $status) = @_;
+
+                $build->finish($status);
+
+                return $self->db->save($build);
+            }
+          );
     };
 }
 

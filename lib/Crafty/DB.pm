@@ -46,6 +46,7 @@ sub save {
                     'last_insert_id' => sub {
                         my ($dbh, $id, $error) = @_;
 
+                        $build->not_new;
                         $deferred->resolve($build);
                     }
                 );

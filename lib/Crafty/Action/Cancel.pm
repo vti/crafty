@@ -18,12 +18,9 @@ sub run {
             sub {
                 my ($build) = @_;
 
-                if ($build && $build->cancel) {
-                    return $self->db->save($build);
-                }
-                else {
-                    die 'not found';
-                }
+                die 'not found' unless $build && $build->cancel;
+
+                return $self->db->save($build);
             },
             sub {
                 $respond->([404, [], ['Not found']]);
@@ -32,7 +29,27 @@ sub run {
             sub {
                 my ($build) = @_;
 
+                my $app_config =
+                  Crafty::AppConfig->new(root => $self->{root})
+                  ->load($build->app);
+
+                my $builder = Crafty::Builder->new(
+                    app_config => $app_config,
+                    root       => $self->{root}
+                );
+
+                $self->{builder} = $builder;
+
+                return $builder->cancel($build);
+            }
+          )->then(
+            sub {
+                my ($build) = @_;
+
                 $respond->([302, [Location => "/builds/$uuid"], ['']]);
+            },
+            sub {
+                $respond->([500, [], ['error']]);
             }
           );
     };

@@ -33,16 +33,20 @@ sub columns {
         'branch',
         'author',
         'message',
+
+        'pid',
     );
 }
 
-sub is_new { !!shift->{is_new} }
+sub is_new  { !!shift->{is_new} }
+sub not_new { delete shift->{is_new} }
 
 sub app      { shift->{app} }
 sub uuid     { shift->{uuid} }
 sub status   { shift->{status} }
 sub started  { shift->{started} }
 sub finished { shift->{finished} }
+sub pid      { shift->{pid} }
 
 sub duration {
     my $self = shift;
@@ -75,11 +79,13 @@ sub status_display {
 
     return {
         'N' => 'default',
+        'I' => 'default',
         'P' => 'default',
         'S' => 'success',
         'E' => 'danger',
         'F' => 'danger',
         'C' => 'danger',
+        'K' => 'danger',
     }->{$self->{status}};
 }
 
@@ -88,11 +94,13 @@ sub status_name {
 
     return {
         'N' => 'New',
+        'I' => 'Preparing',
         'P' => 'Running',
         'S' => 'Success',
         'E' => 'Error',
         'F' => 'Failure',
-        'C' => 'Canceled',
+        'C' => 'Canceling',
+        'K' => 'Killed',
     }->{$self->{status}};
 }
 
@@ -118,13 +126,26 @@ sub finish {
     return 1;
 }
 
-sub start {
+sub init {
     my $self = shift;
 
     return unless $self->{status} eq 'N';
 
+    $self->{status} = 'I';
+
+    return 1;
+}
+
+sub start {
+    my $self = shift;
+    my ($pid) = @_;
+
+    return unless $self->{status} eq 'I';
+
     $self->{status}  = 'P';
+    $self->{pid}     = $pid;
     $self->{started} = $self->_now;
+    $self->{finished} = '';
 
     return 1;
 }
@@ -134,8 +155,9 @@ sub restart {
 
     return unless $self->is_restartable;
 
-    $self->{status}  = 'P';
-    $self->{started} = $self->_now;
+    $self->{status}   = 'I';
+    $self->{started}  = '';
+    $self->{finished} = '';
 
     return 1;
 }
@@ -160,13 +182,15 @@ sub to_store {
 
         status => $self->{status},
 
-        started  => $self->{started},
-        finished => $self->{finished},
+        started  => $self->{started}  // '',
+        finished => $self->{finished} // '',
 
         rev     => $self->{rev},
         branch  => $self->{branch},
         author  => $self->{author},
         message => $self->{message},
+
+        pid => $self->{pid} // 0,
     };
 }
 
@@ -192,6 +216,8 @@ sub to_hash {
         branch  => $self->{branch},
         author  => $self->{author},
         message => $self->{message},
+
+        pid => $self->{pid},
     };
 }
 

@@ -55,10 +55,20 @@ sub run {
 
                   print @cmd, "\n";
 
-                  system(@cmd);
+                  my $cmd = join " ", @cmd;
+
+                  $|++;
+
+                  open my $pipe, "$cmd |" or die $!;
+
+                  $SIG{INT} = sub { close $pipe; print "Killed\n"; exit 255 };
+
+                  while (<$pipe>) {
+                      print $_;
+                  }
+                  close $pipe;
 
                   my $exit_code = $?;
-                  $exit_code >>= 8;
 
                   print $ex $exit_code;
 

@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Promises qw(deferred);
+use AnyEvent;
 use Crafty::Runner;
 
 sub new {
@@ -21,7 +22,7 @@ sub new {
 
 sub build {
     my $self = shift;
-    my ($build) = @_;
+    my ($build, %params) = @_;
 
     my $build_dir = sprintf "$self->{root}/data/builds/%s",     $build->uuid;
     my $stream    = sprintf "$self->{root}/data/builds/%s.log", $build->uuid;
@@ -42,6 +43,8 @@ sub build {
                 cmd    => [$value],
                 on_pid => sub {
                     my ($pid) = @_;
+
+                    $params{on_pid}->($pid) if $params{on_pid};
                 },
                 on_error => sub {
                     $deferred->resolve($build, 'E');
@@ -49,11 +52,40 @@ sub build {
                 on_eof => sub {
                     my ($exit_code) = @_;
 
-                    $deferred->resolve($build, $exit_code ? 'F' : 'S');
+                    if (defined $exit_code) {
+                        $deferred->resolve($build, $exit_code ? 'F' : 'S');
+                    }
+                    else {
+                        $deferred->resolve($build, 'K');
+                    }
                 }
             );
         }
     }
+
+    return $deferred->promise;
+}
+
+sub cancel {
+    my $self = shift;
+    my ($build) = @_;
+
+    return deffered->promise->resolve unless my $pid = $build->pid;
+
+    my $deferred = deferred;
+
+    kill 'INT', $pid;
+
+    $self->{t} = AnyEvent->timer(
+        after => 1,
+        cb    => sub {
+            if (kill 0, $pid) {
+                kill 'KILL', $pid;
+            }
+
+            $deferred->resolve($build);
+        }
+    );
 
     return $deferred->promise;
 }

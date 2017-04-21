@@ -90,16 +90,28 @@ subtest 'finish: finishes' => sub {
     isnt $build->finished, '';
 };
 
+subtest 'init: inits' => sub {
+    my $build = _build(status => 'P');
+
+    ok !$build->init;
+
+    $build = _build(status => 'N');
+
+    ok $build->init;
+    is $build->status, 'I';
+};
+
 subtest 'start: starts' => sub {
     my $build = _build(status => 'P');
 
     ok !$build->start;
 
-    $build = _build(status => 'N');
+    $build = _build(status => 'I');
 
-    ok $build->start;
+    ok $build->start(123);
     isnt $build->started, '';
     is $build->status,    'P';
+    is $build->pid,       123;
 };
 
 subtest 'restart: restarts' => sub {
@@ -107,11 +119,13 @@ subtest 'restart: restarts' => sub {
 
     ok !$build->restart;
 
-    $build = _build(status => 'E', started => '2017-01-02');
+    $build =
+      _build(status => 'E', started => '2017-01-02', finished => '2017-01-02');
 
     ok $build->restart;
-    isnt $build->started, '2017-01-02';
-    is $build->status,    'P';
+    is $build->started,  '';
+    is $build->finished, '';
+    is $build->status,   'I';
 };
 
 subtest 'cancel: cancels' => sub {
@@ -138,6 +152,8 @@ subtest 'to_hash: serializes' => sub {
         branch  => 'master',
         author  => 'vti',
         message => 'fix',
+
+        pid => '123',
     );
 
     cmp_deeply $build->to_hash, {
@@ -159,6 +175,8 @@ subtest 'to_hash: serializes' => sub {
 
         is_restartable => '',
         is_cancelable  => 1,
+
+        pid => '123',
     };
 };
 

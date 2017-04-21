@@ -44,7 +44,27 @@ sub run {
                     root       => $self->{root}
                 );
 
-                return $builder->build($build);
+                $self->{builder} = $builder;
+
+                my $promise = $builder->build(
+                    $build,
+                    on_pid => sub {
+                        my ($pid) = @_;
+
+                        $build->start($pid);
+
+                        $self->db->save($build);
+                    }
+                );
+
+                $respond->(
+                    [
+                        302, [Location => sprintf("/builds/%s", $build->uuid)],
+                        ['']
+                    ]
+                );
+
+                return $promise;
             }
           )->then(
             sub {
@@ -53,17 +73,6 @@ sub run {
                 $build->finish($status);
 
                 return $self->db->save($build);
-            }
-          )->then(
-            sub {
-                my ($build) = @_;
-
-                $respond->(
-                    [
-                        302, [Location => sprintf("/builds/%s", $build->uuid)],
-                        ['']
-                    ]
-                );
             }
           );
     };
