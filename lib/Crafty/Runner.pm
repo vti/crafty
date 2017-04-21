@@ -93,8 +93,6 @@ sub run {
 
                     seek $tmp, 0, 0;
                     my $exit_code = <$tmp>;
-                    $exit_code //= 0;
-                    $exit_code >>= 8;
 
                     $params{on_eof}->($exit_code);
                 },

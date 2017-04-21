@@ -50,7 +50,14 @@ sub run {
                     db   => $self->db
                 );
 
-                $builder->build($uuid);
+                $builder->build(
+                    $uuid,
+                    sub {
+                        my ($new_build) = @_;
+
+                        $self->broadcast( 'build', $new_build );
+                    }
+                );
 
                 $self->{builder} = $builder;
 
