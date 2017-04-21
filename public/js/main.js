@@ -23,9 +23,9 @@
                     if (method == 'toggle') {
                         $(el).removeClass('hidden');
                         if (value) {
-                            $(el).css('visibility', 'visible');
+                            $(el).removeClass('hidden');
                         } else {
-                            $(el).css('visibility', 'hidden');
+                            $(el).addClass('hidden');
                         }
                     } else if (method == 'text') {
                         $(el).text(data[key]);

@@ -44,7 +44,7 @@
                      data-key="is_restartable"
                      data-method="toggle">
                     <form method="POST" action="/restart/{{build.uuid}}" class="ajax">
-                        <button class="btn btn-xs btn-success">
+                        <button class="btn btn-xs btn-default">
                             <span class="glyphicon glyphicon-repeat"></span> rebuild
                         </button>
                     </form>

@@ -33,6 +33,17 @@
                     </td>
                     <td>
                         <a href="/builds/{{uuid}}">{{message}}</a>
+
+                        <img src="/img/loader.gif"
+                             class="{{^is_cancelable}}hidden{{/is_cancelable}}"
+                             data-event="build"
+                             data-uuid="{{uuid}}"
+                             data-key="is_cancelable"
+                             data-method="toggle"
+                             width="16"
+                             height="16"
+                             />
+
                         <div>
                             <span class="glyphicon glyphicon-user"></span>
                             {{author}}
@@ -41,7 +52,7 @@
                         </div>
                     </td>
                     <td>
-                        <span class="label label-{{status_display}}"
+                        <span class="label label-{{status_display}} col-sm-3"
                               data-event="build"
                               data-uuid="{{uuid}}"
                               data-key="status_display"
@@ -55,17 +66,6 @@
                                 {{status_name}}
                             </span>
                         </span>
-
-                        <img src="/img/loader.gif"
-                             class="{{^is_cancelable}}hidden{{/is_cancelable}}"
-                             data-event="build"
-                             data-uuid="{{uuid}}"
-                             data-key="is_cancelable"
-                             data-method="toggle"
-                             width="16"
-                             height="16"
-                             />
-
                     </td>
                     <td>
                         <div title="{{started}}"
