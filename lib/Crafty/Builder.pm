@@ -3,6 +3,7 @@ package Crafty::Builder;
 use strict;
 use warnings;
 
+use Promises qw(deferred);
 use Crafty::Runner;
 
 sub new {
@@ -13,20 +14,17 @@ sub new {
     bless $self, $class;
 
     $self->{root}       = $params{root};
-    $self->{db}         = $params{db};
     $self->{app_config} = $params{app_config};
 
     return $self;
 }
 
-sub db { shift->{db} }
-
 sub build {
     my $self = shift;
-    my ($uuid, $cb) = @_;
+    my ($build) = @_;
 
-    my $build_dir = "$self->{root}/data/builds/$uuid";
-    my $stream    = "$self->{root}/data/builds/$uuid.log";
+    my $build_dir = sprintf "$self->{root}/data/builds/%s",     $build->uuid;
+    my $stream    = sprintf "$self->{root}/data/builds/%s.log", $build->uuid;
 
     my $runner = Crafty::Runner->new(
         build_dir => $build_dir,
@@ -34,39 +32,30 @@ sub build {
     );
     $self->{runner} = $runner;
 
-    $self->db->start(
-        $uuid,
-        sub {
-            foreach my $action (@{$self->{app_config}->{build}}) {
-                my ($key, $value) = %$action;
+    my $deferred = deferred;
 
-                if ($key eq 'run') {
-                    $runner->run(
-                        cmd    => [$value],
-                        on_pid => sub {
-                            my ($pid) = @_;
-                        },
-                        on_error => sub {
-                            $self->db->finish(
-                                $uuid,
-                                status => 'E',
-                                sub { $cb->(@_) if $cb }
-                            );
-                        },
-                        on_eof => sub {
-                            my ($exit_code) = @_;
+    foreach my $action (@{$self->{app_config}->{build}}) {
+        my ($key, $value) = %$action;
 
-                            $self->db->finish(
-                                $uuid,
-                                status => $exit_code ? 'F' : 'S',
-                                sub { $cb->(@_) if $cb }
-                            );
-                        }
-                    );
+        if ($key eq 'run') {
+            $runner->run(
+                cmd    => [$value],
+                on_pid => sub {
+                    my ($pid) = @_;
+                },
+                on_error => sub {
+                    $deferred->resolve($build, 'E');
+                },
+                on_eof => sub {
+                    my ($exit_code) = @_;
+
+                    $deferred->resolve($build, $exit_code ? 'F' : 'S');
                 }
-            }
+            );
         }
-    );
+    }
+
+    return $deferred->promise;
 }
 
 1;

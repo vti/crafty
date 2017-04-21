@@ -22,6 +22,7 @@ use Plack::App::EventSource;
 use Plack::App::File;
 use Getopt::Long;
 use Crafty;
+use Crafty::EventBus;
 
 my $opt_config = 'config.yml';
 my $opt_listen = '0.0.0.0:5000';
@@ -45,7 +46,7 @@ my $psgi = builder {
             handler_cb => sub {
                 my ( $conn, $env ) = @_;
 
-                $app->event_bus->new_conn( $conn, $env );
+                Crafty::EventBus->instance->new_conn( $conn, $env );
             }
         )->to_app;
     };

@@ -5,8 +5,8 @@ use warnings;
 
 use parent 'Crafty::Action::Base';
 
-use Data::UUID;
 use Plack::Request;
+use Crafty::Build;
 use Crafty::AppConfig;
 use Crafty::Builder;
 
@@ -30,19 +30,16 @@ sub run {
       ->parse($req->parameters);
     return [400, [], ['Bad Request']] unless $params;
 
-    my $uuid = $self->_generate_id;
-
     return sub {
         my $respond = shift;
 
-        $self->db->insert(
-            %$params,
-            'uuid' => $uuid,
-            'app'  => $app,
-            sub {
-                my ($id) = @_;
+        my $build = Crafty::Build->new(app => $app);
 
-                $self->broadcast('build.new', {});
+        $build->start;
+
+        $self->db->save($build,
+            sub {
+                my ($build) = @_;
 
                 my $builder = Crafty::Builder->new(
                     app_config => $app_config,
@@ -51,17 +48,23 @@ sub run {
                 );
 
                 $builder->build(
-                    $uuid,
+                    $build,
                     sub {
-                        my ($new_build) = @_;
+                        my ($status) = @_;
 
-                        $self->broadcast( 'build', $new_build );
+                        $build->finish($status);
+
+                        $self->db->save(
+                            $build,
+                            sub {
+                                $respond->([200, [], ['ok']]);
+                            }
+                        );
                     }
                 );
 
                 $self->{builder} = $builder;
 
-                $respond->([200, [], ['ok']]);
             }
         );
     };
@@ -76,11 +79,6 @@ sub _build_action {
     Class::Load::load_class($action_class);
 
     return $action_class->new(@args);
-}
-
-sub _generate_id {
-    my $id = my $uuid = Data::UUID->new;
-    return lc($uuid->to_string($uuid->create));
 }
 
 1;

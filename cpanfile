@@ -2,6 +2,7 @@ requires 'AnyEvent';
 requires 'AnyEvent::Fork';
 requires 'AnyEvent::DBI';
 requires 'EV';
+requires 'Promises';
 
 requires 'Time::Moment';
 requires 'Class::Load';
@@ -18,3 +19,6 @@ requires 'Plack';
 requires 'Plack::App::EventSource';
 requires 'Plack::Middleware::ReverseProxy';
 requires 'Twiggy';
+
+requires 'Test::More';
+requires 'Test::Deep';

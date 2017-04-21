@@ -7,7 +7,6 @@ use Class::Load ();
 use Routes::Tiny;
 use Text::Caml;
 use Crafty::DB;
-use Crafty::EventBus;
 
 sub new {
     my $class = shift;
@@ -18,13 +17,10 @@ sub new {
 
     $self->{root}        = $params{root};
     $self->{connections} = {};
-    $self->{db}        = Crafty::DB->new(dbpath => "$self->{root}/data/db.db");
-    $self->{event_bus} = Crafty::EventBus->new;
+    $self->{db} = Crafty::DB->new(dbpath => "$self->{root}/data/db.db");
 
     return $self;
 }
-
-sub event_bus { shift->{event_bus} }
 
 sub to_psgi {
     my $self = shift;
@@ -50,11 +46,10 @@ sub to_psgi {
         if ($match) {
             my $action = $self->_build_action(
                 $match->name,
-                env       => $env,
-                view      => $view,
-                root      => $self->{root},
-                db        => $self->{db},
-                event_bus => $self->{event_bus},
+                env  => $env,
+                view => $view,
+                root => $self->{root},
+                db   => $self->{db},
             );
 
             return $action->run(%{$match->captures || {}});

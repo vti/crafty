@@ -11,7 +11,7 @@ sub run {
     return sub {
         my $respond = shift;
 
-        $self->db->builds(
+        $self->db->find->then(
             sub {
                 my ($builds) = @_;
 
@@ -20,7 +20,7 @@ sub run {
                     {
                         title  => 'Hello',
                         body   => 'there!',
-                        builds => $builds
+                        builds => [map { $_->to_hash } @$builds]
                     }
                 );
 

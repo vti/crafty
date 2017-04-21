@@ -17,6 +17,15 @@ sub new {
     return $self;
 }
 
+our $INSTANCE;
+sub instance {
+    my ($class) = @_;
+
+    $INSTANCE ||= $class->new;
+
+    return $INSTANCE;
+}
+
 sub new_conn {
     my $self = shift;
     my ($conn, $env) = @_;

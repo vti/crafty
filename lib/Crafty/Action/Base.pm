@@ -10,21 +10,17 @@ sub new {
     my $self = {};
     bless $self, $class;
 
-    $self->{env}       = $params{env};
-    $self->{db}        = $params{db};
-    $self->{view}      = $params{view};
-    $self->{root}      = $params{root};
-    $self->{event_bus} = $params{event_bus};
+    $self->{env}  = $params{env};
+    $self->{db}   = $params{db};
+    $self->{view} = $params{view};
+    $self->{root} = $params{root};
 
     return $self;
 }
 
-sub env       { shift->{env} }
-sub db        { shift->{db} }
-sub view      { shift->{view} }
-sub event_bus { shift->{event_bus} }
-
-sub broadcast { shift->event_bus->broadcast(@_) }
+sub env  { shift->{env} }
+sub db   { shift->{db} }
+sub view { shift->{view} }
 
 sub render {
     my $self = shift;

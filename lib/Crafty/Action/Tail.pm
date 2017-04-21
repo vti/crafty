@@ -14,39 +14,37 @@ sub run {
     my $self = shift;
     my (%params) = @_;
 
-    my $id = $params{build_id};
+    my $uuid = $params{build_id};
 
     return sub {
         my $respond = shift;
 
-        $self->db->build(
-            $id,
+        $self->db->load($uuid)->then(
             sub {
                 my ($build) = @_;
 
-                if ($build) {
-                    my $cb = Plack::App::EventSource->new(
-                        headers => [
+                my $cb = Plack::App::EventSource->new(
+                    headers => [
 
-                            #'Access-Control-Allow-Origin',
-                            #'http://localhost:5000',
-                            'Access-Control-Allow-Credentials',
-                            'true'
-                        ],
-                        handler_cb => sub {
-                            my ($conn, $env) = @_;
+                        #'Access-Control-Allow-Origin',
+                        #'http://localhost:5000',
+                        'Access-Control-Allow-Credentials',
+                        'true'
+                    ],
+                    handler_cb => sub {
+                        my ($conn, $env) = @_;
 
-                            my $stream = "$self->{root}/data/builds/$build->{uuid}.log";
+                        my $stream = sprintf "$self->{root}/data/builds/%s.log",
+                          $build->uuid;
 
-                            $self->tail($conn, $stream);
-                        }
-                    )->call($self->env);
+                        $self->tail($conn, $stream);
+                    }
+                )->call($self->env);
 
-                    $cb->($respond);
-                }
-                else {
-                    $respond->([404, [], ['Not found']]);
-                }
+                $cb->($respond);
+            },
+            sub {
+                $respond->([404, [], ['Not found']]);
             }
         );
     };

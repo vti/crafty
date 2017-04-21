@@ -9,27 +9,24 @@ sub run {
     my $self = shift;
     my (%params) = @_;
 
-    my $id = $params{build_id};
+    my $uuid = $params{build_id};
 
     return sub {
         my $respond = shift;
 
-        $self->db->build(
-            $id,
+        $self->db->load($uuid)->then(
             sub {
                 my ($build) = @_;
 
-                if ($build) {
-                    my $content = $self->render('build.caml', {build => $build});
+                my $content =
+                  $self->render('build.caml', {build => $build->to_hash});
 
-                    $respond->([200, [], [$content]]);
-                }
-                else {
-                    $respond->([404, [], ['Not found']]);
-                }
+                $respond->([200, [], [$content]]);
+            },
+            sub {
+                $respond->([404, [], ['Not found']]);
             }
         );
-
     };
 }
 

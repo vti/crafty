@@ -14,30 +14,27 @@ sub run {
     return sub {
         my $respond = shift;
 
-        $self->db->build(
-            $uuid,
+        $self->db->load($uuid)->then(
             sub {
                 my ($build) = @_;
 
-                if ($build && ($build->{status} eq 'P' || $build->{status} eq 'N')) {
-                    $self->db->finish(
-                        $uuid,
-                        status => 'C',
-                        sub {
-                            my ($new_build) = @_;
-
-                            $self->broadcast('build', $new_build);
-
-                            $respond->(
-                                [302, [Location => "/builds/$uuid"], ['']]);
-                        }
-                    );
+                if ($build && $build->cancel) {
+                    return $self->db->save($build);
                 }
                 else {
-                    $respond->([404, [], ['Not found']]);
+                    die 'not found';
                 }
+            },
+            sub {
+                $respond->([404, [], ['Not found']]);
             }
-        );
+          )->then(
+            sub {
+                my ($build) = @_;
+
+                $respond->([302, [Location => "/builds/$uuid"], ['']]);
+            }
+          );
     };
 }
 

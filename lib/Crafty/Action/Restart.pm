@@ -17,48 +17,55 @@ sub run {
     return sub {
         my $respond = shift;
 
-        $self->db->build(
-            $uuid,
+        $self->db->load($uuid)->then(
             sub {
                 my ($build) = @_;
 
-                if ($build && $build->{status} ne 'P') {
-                    my $app_config =
-                      Crafty::AppConfig->new(root => $self->{root})
-                      ->load($build->{app});
-
-                    $self->db->restart(
-                        $uuid,
-                        sub {
-                            my ($new_build) = @_;
-
-                            my $builder = Crafty::Builder->new(
-                                app_config => $app_config,
-                                root       => $self->{root},
-                                db         => $self->db
-                            );
-
-                            $self->broadcast('build', $new_build);
-
-                            $builder->build(
-                                $uuid,
-                                sub {
-                                    my ($new_build) = @_;
-
-                                    $self->broadcast('build', $new_build);
-                                }
-                            );
-
-                            $respond->(
-                                [302, [Location => "/builds/$uuid"], ['']]);
-                        }
-                    );
+                if ($build && $build->restart) {
+                    return $self->db->save($build);
                 }
                 else {
-                    $respond->([404, [], ['Not found']]);
+                    die 'not found';
                 }
+            },
+            sub {
+                $respond->([404, [], ['Not found']]);
             }
-        );
+          )->then(
+            sub {
+                my ($build) = @_;
+
+                my $app_config =
+                  Crafty::AppConfig->new(root => $self->{root})
+                  ->load($build->app);
+
+                my $builder = Crafty::Builder->new(
+                    app_config => $app_config,
+                    root       => $self->{root}
+                );
+
+                return $builder->build($build);
+            }
+          )->then(
+            sub {
+                my ($build, $status) = @_;
+
+                $build->finish($status);
+
+                return $self->db->save($build);
+            }
+          )->then(
+            sub {
+                my ($build) = @_;
+
+                $respond->(
+                    [
+                        302, [Location => sprintf("/builds/%s", $build->uuid)],
+                        ['']
+                    ]
+                );
+            }
+          );
     };
 }
 
