@@ -28,16 +28,18 @@ sub run {
                     sub {
                         my ($builds) = @_;
 
+                        my $pager = Crafty::Pager->new(
+                            current_page => $current_page,
+                            limit        => $limit,
+                            total        => $builds_count
+                        )->pager;
+
                         my $content = $self->render(
                             'index.caml',
                             {
                                 builds_count => $builds_count,
                                 builds       => [map { $_->to_hash } @$builds],
-                                pager        => Crafty::Pager->new(
-                                    current_page => $current_page,
-                                    limit        => $limit,
-                                    total        => $builds_count
-                                )->pager
+                                pager        => $pager
                             }
                         );
 
