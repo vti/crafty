@@ -1,3 +1,4 @@
 #!/bin/sh
 
+mkdir data/
 PERL5LIB=".:perl5/lib/perl5:$PERL5LIB" util/mimi migrate --dsn='dbi:SQLite:data/db.db' --schema=schema --setup
