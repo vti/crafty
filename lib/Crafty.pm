@@ -31,6 +31,7 @@ sub to_psgi {
     $routes->add_route('/builds/:build_id',     name => 'Build');
     $routes->add_route('/tail/:build_id',       name => 'Tail');
     $routes->add_route('/cancel/:build_id',     name => 'Cancel');
+    $routes->add_route('/download/:build_id',   name => 'Download');
     $routes->add_route('/restart/:build_id',    name => 'Restart');
     $routes->add_route('/hooks/:app/:provider', name => 'Hook');
 

@@ -1,8 +1,27 @@
+html, body {
+    width: 100%;
+    height: 100%;
+}
+
+.container-fluid {
+    /*padding-top:40px;*/
+}
+
+.navbar {
+    /*height: 40px;*/
+    /*position: relative;*/
+    /*margin: 0;*/
+    /*padding: 0;*/
+}
+
 .console {
     background-color: #000;
     color: #ccc;
     min-height: 100px;
-    max-height: 100%;
+    /*max-height: 50%;*/
+    /*height: 50%;*/
+
+    overflow-y:scroll;
 
     white-space: pre-wrap;       /* Since CSS 2.1 */
     white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */

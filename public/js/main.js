@@ -59,7 +59,7 @@
         $('.console').each(function(index, el) {
             var build = $(el).data('build');
 
-            $(el).height($(window).height() - 150);
+            $(el).height($(window).height() - 250);
 
             var es = events.connect('/tail/' + build, function(ev) {
                 if (ev.type == 'output') {

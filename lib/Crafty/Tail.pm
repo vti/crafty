@@ -28,7 +28,7 @@ sub tail {
 
                   exec @cmd or die $!;
                }
-            ')->send_arg('tail', '-f', '-n', '+1', $path)->run(
+            ')->send_arg('tail', '-f', '-n', '10000', $path)->run(
         'run',
         sub {
             my ($fh) = @_;

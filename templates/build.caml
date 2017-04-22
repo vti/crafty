@@ -6,11 +6,11 @@
     </ol>
 
     <div class="panel panel-{{build.status_display}}"
-          data-event="build"
-          data-uuid="{{build.uuid}}"
-          data-key="status_display"
-          data-method="replace_class"
-          data-prefix="panel-">
+         data-event="build"
+         data-uuid="{{build.uuid}}"
+         data-key="status_display"
+         data-method="replace_class"
+         data-prefix="panel-">
         <div class="panel-heading">
             <span
              data-event="build"
@@ -56,10 +56,10 @@
             <span class="glyphicon glyphicon-time"></span>
 
             <span
-             data-event="build"
-             data-uuid="{{build.uuid}}"
-             data-key="duration"
-             data-method="text">{{build.duration}}</span>
+                  data-event="build"
+                  data-uuid="{{build.uuid}}"
+                  data-key="duration"
+                  data-method="text">{{build.duration}}</span>
 
         </div>
     </div>
@@ -67,5 +67,16 @@
 </div>
 
 <div class="col-sm-12 col-md-8">
+    <div class="breadcrumb" style="padding-top:7px;padding-bottom:7px">
+        <span class="pull-right">
+
+            <a href="/download/{{build.uuid}}" class="btn btn-default btn-xs">
+                <span class="glyphicon glyphicon-download"></span> Download
+            </a>
+
+        </span>
+        <div class="clear"></div>
+    </div>
+
     <pre class="console" data-build="{{build.uuid}}"></pre>
 </div>
