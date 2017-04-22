@@ -1,6 +1,6 @@
 <div class="col-sm-12 col-md-12 main">
     <ol class="breadcrumb">
-        <li class="active">Builds</li>
+        <li class="active">Builds ({{builds_count}})</li>
     </ol>
 
     <div class="table-responsive">
@@ -31,6 +31,26 @@
                 {{/builds}}
             </tbody>
         </table>
+
+        {{#pager}}
+        <nav aria-label="Page navigation" class="text-center">
+            <ul class="pagination">
+                <li class="{{^prev}}disabled{{/prev}}">
+                    <a href="/?p={{prev}}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {{#pages}}
+                <li class="{{#active}}disabled{{/active}}"><a href="/?p={{page}}">{{page}}</a></li>
+                {{/pages}}
+                <li class="{{^next}}disabled{{/next}}">
+                    <a href="/?p={{next}}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        {{/pager}}
 
         <div class="template hidden">
         <table>

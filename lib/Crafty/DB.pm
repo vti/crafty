@@ -108,13 +108,37 @@ sub load {
     return $deferred->promise;
 }
 
+sub count {
+    my $self = shift;
+
+    my $sql = sql_select from => 'builds', columns => [\'COUNT(*)'];
+
+    my $deferred = deferred;
+
+    $self->{dbh}->exec(
+        $sql->to_sql,
+        $sql->to_bind,
+        sub {
+            my ($dbh, $rows, $rv) = @_;
+
+            $#_ or die "failure: $@";
+
+            $deferred->resolve($rows->[0]->[0]);
+        }
+    );
+
+    return $deferred->promise;
+}
+
 sub find {
     my $self = shift;
 
     my $sql = sql_select
       from     => 'builds',
       columns  => [Crafty::Build->columns],
-      order_by => ['started' => 'DESC'];
+      order_by => ['started' => 'DESC'],
+      limit    => 10,
+      offset   => 0;
 
     my $deferred = deferred;
 

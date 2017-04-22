@@ -3,17 +3,6 @@ html, body {
     height: 100%;
 }
 
-.container-fluid {
-    /*padding-top:40px;*/
-}
-
-.navbar {
-    /*height: 40px;*/
-    /*position: relative;*/
-    /*margin: 0;*/
-    /*padding: 0;*/
-}
-
 .console {
     background-color: #000;
     color: #ccc;

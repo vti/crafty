@@ -3,6 +3,8 @@ package Crafty::Action::Base;
 use strict;
 use warnings;
 
+use Plack::Request;
+
 sub new {
     my $class = shift;
     my (%params) = @_;
@@ -19,6 +21,7 @@ sub new {
 }
 
 sub env  { shift->{env} }
+sub req  { Plack::Request->new(shift->env) }
 sub db   { shift->{db} }
 sub view { shift->{view} }
 
