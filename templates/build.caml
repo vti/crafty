@@ -53,13 +53,47 @@
         </div>
         <div class="panel-body">
 
-            <span class="glyphicon glyphicon-time"></span>
+            {{#build}}
 
-            <span
-                  data-event="build"
-                  data-uuid="{{build.uuid}}"
-                  data-key="duration"
-                  data-method="text">{{build.duration}}</span>
+            <div>
+
+                <span class="glyphicon glyphicon-calendar"></span>
+
+                <span title="{{started}}"
+                      data-event="build"
+                      data-uuid="{{uuid}}"
+                      data-key="started"
+                      data-method="text"
+                      data-attr="title"
+                      class="date-relative">{{started}}</span>
+
+                <span class="glyphicon glyphicon-time"></span>
+
+                <span title="{{duration}}"
+                      data-event="build"
+                      data-uuid="{{uuid}}"
+                      data-key="duration"
+                      data-method="text"
+                      data-attr="title"
+                      class="time-duration">{{duration}}</span>
+
+            </div>
+
+            <br />
+
+            <div>
+                <span class="glyphicon glyphicon-user"></span> {{author}}
+            </div>
+
+            <div>
+                {{message}}
+            </div>
+
+            <div>
+                <span class="glyphicon glyphicon-tag"></span> {{branch}}
+            </div>
+
+            {{/build}}
 
         </div>
     </div>

@@ -1,22 +1,41 @@
 (function() {
-    require(['/js/eventbus.js', '/js/events.js', '/js/lib/moment.min.js', '/js/lib/mustache.min.js'], function(eventBus, events, moment, mustache) {
-        $('.time-duration:visible').each(function() {
-            var $self = $(this);
-            if ($self.text()){
-                $self.text(moment.duration($self.text() * 1000).humanize(), 'seconds');
-                //$self.removeClass('time-duration');
-            }
-        });
-        $('.date-relative:visible').each(function() {
-            var $self = $(this);
-            if ($self.text()){
-                $self.text(moment($self.text()).fromNow());
-                //$self.removeClass('date-relative');
-            }
-        });
+    require([
+        '/js/eventbus.js',
+        '/js/events.js',
+        '/js/lib/moment.min.js',
+        '/js/lib/mustache.min.js'
+    ], function(eventBus, events, moment, mustache) {
+        function formatTimeDuration(text) {
+            return moment.duration(text * 1000).humanize();
+        }
+
+        function formatDateRelative(text) {
+            return moment(text).fromNow();
+        }
+
+        function updateTimeFormatting() {
+            $('.time-duration:visible').each(function() {
+                var value = $(this).attr('title');
+                $(this).text(formatTimeDuration(value));
+            });
+
+            $('.date-relative:visible').each(function() {
+                var value = $(this).attr('title');
+                $(this).text(formatDateRelative(value));
+            });
+        }
+
+        updateTimeFormatting();
+
+        setInterval(function() {
+            updateTimeFormatting()
+        }, 60 * 1000);
 
         eventBus.subscribe('*', function(ev, data) {
-            $('[data-event="' + ev + '"]' + (!data.is_new && data.uuid ? '[data-uuid="' + data.uuid + '"]' : '')).each(function(index, el) {
+            var selector = '[data-event="' + ev + '"]' +
+                (!data.is_new && data.uuid ? '[data-uuid="' + data.uuid + '"]' : '');
+
+            $(selector).each(function(index, el) {
                 var key = $(el).data('key');
                 var method = $(el).data('method');
 
@@ -31,7 +50,21 @@
                             $(el).addClass('hidden');
                         }
                     } else if (method == 'text') {
-                        $(el).text(data[key]);
+                        var value = data[key];
+                        var attr = $(el).data('attr');
+
+                        if (attr) {
+                            $(el).attr(attr, value);
+                        }
+
+                        if ($(el).hasClass('date-relative')) {
+                            value = formatDateRelative(value);
+                        }
+                        if ($(el).hasClass('time-duration')) {
+                            value = formatTimeDuration(value);
+                        }
+
+                        $(el).text(value);
                     } else if (method == 'replace_class') {
                         var prefix = $(el).data('prefix');
                         $(el).attr('class', function(index, className) {
