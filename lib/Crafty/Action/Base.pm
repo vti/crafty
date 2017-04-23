@@ -1,29 +1,16 @@
 package Crafty::Action::Base;
-
-use strict;
-use warnings;
+use Moo;
 
 use Plack::Request;
+use Crafty::Log;
 
-sub new {
-    my $class = shift;
-    my (%params) = @_;
+has 'config', is => 'ro', required => 1;
+has 'env',    is => 'ro', required => 1;
+has 'db',     is => 'ro', required => 1;
+has 'view',   is => 'ro', required => 1;
+has 'pool',   is => 'ro';
 
-    my $self = {};
-    bless $self, $class;
-
-    $self->{env}  = $params{env};
-    $self->{db}   = $params{db};
-    $self->{view} = $params{view};
-    $self->{root} = $params{root};
-
-    return $self;
-}
-
-sub env  { shift->{env} }
-sub req  { Plack::Request->new(shift->env) }
-sub db   { shift->{db} }
-sub view { shift->{view} }
+sub req { Plack::Request->new(shift->env) }
 
 sub render {
     my $self = shift;
@@ -34,6 +21,35 @@ sub render {
     my $content = $view->render_file($template, $args);
 
     return $view->render_file('layout.caml', {content => $content});
+}
+
+sub not_found {
+    my $self = shift;
+    my ($respond) = @_;
+
+    my $res = ['404', [], ['Not Found']];
+
+    return $respond ? $respond->($res) : $res;
+}
+
+sub redirect {
+    my $self = shift;
+    my ($url, $respond) = @_;
+
+    my $res = [302, [Location => $url], ['']];
+
+    return $respond ? $respond->($res) : $res;
+}
+
+sub handle_error {
+    my $self = shift;
+    my ($error, $respond) = @_;
+
+    Crafty::Log->error(@_) unless ref $error;
+
+    my $res = ref $error ? $error : [500, [], ['error']];
+
+    return $respond ? $respond->($res) : $res;
 }
 
 1;

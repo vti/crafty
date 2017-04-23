@@ -1,84 +1,47 @@
 package Crafty::Action::Hook;
+use Moo;
+extends 'Crafty::Action::Base';
 
-use strict;
-use warnings;
-
-use parent 'Crafty::Action::Base';
-
-use Plack::Request;
+use Class::Load ();
 use Crafty::Build;
-use Crafty::AppConfig;
-use Crafty::Builder;
 
 sub run {
     my $self = shift;
     my (%params) = @_;
 
-    my $app      = $params{app};
     my $provider = $params{provider};
+    my $project  = $params{project};
 
-    my $app_config = Crafty::AppConfig->new(root => $self->{root})->load($app);
-    return [404, [], ["Unknown application `$app`"]] unless $app_config;
+    my $project_config = $self->config->project($project);
+    return [404, [], ["Unknown project `$project`"]] unless $project_config;
 
-    if (!grep { $_->{provider} eq $provider } @{$app_config->{hooks} || []}) {
-        return [404, [], ['Unknown hook provider']];
-    }
+    my ($webhook_config) =
+      grep { $_->{provider} eq $provider } @{$project_config->{webhooks} || []};
+    return [404, [], ['Unknown hook provider']] unless $webhook_config;
 
-    my $req = Plack::Request->new($self->env);
-
-    my $params = $self->_build_action($provider, config => $app_config)
-      ->parse($req->parameters);
+    my $params =
+      $self->_build_hook_provider($provider, config => $webhook_config)
+      ->parse($self->req->parameters);
     return [400, [], ['Bad Request']] unless $params;
 
     return sub {
         my $respond = shift;
 
-        my $build = Crafty::Build->new(app => $app, %$params);
+        my $build = Crafty::Build->new(project => $project, %$params);
 
         $build->init;
 
         $self->db->save($build)->then(
             sub {
-                my ($build) = @_;
+                $self->pool->build($build);
 
-                my $builder = Crafty::Builder->new(
-                    app_config => $app_config,
-                    root       => $self->{root}
-                );
-
-                $self->{builder} = $builder;
-
-                my $promise = $builder->build(
-                    $build,
-                    on_pid => sub {
-                        my ($pid) = @_;
-
-                        $build->start($pid);
-
-                        $self->db->save($build);
-                    }
-                );
-
-                $respond->([200, [], ['ok']]);
-
-                return $promise;
-            },
-            sub {
-                $respond->([500, [], ['error']]);
+                $respond->([200, [], [$build->uuid]]);
             }
-          )->then(
-            sub {
-                my ($build, $status) = @_;
-
-                $build->finish($status);
-
-                return $self->db->save($build);
-            }
-          );
+        )->catch(sub { $self->handle_error(@_) });
     };
 }
 
-sub _build_action {
+sub _build_hook_provider {
     my $self = shift;
     my ($action, @args) = @_;
 

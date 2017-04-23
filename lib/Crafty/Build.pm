@@ -1,27 +1,25 @@
 package Crafty::Build;
-
-use strict;
-use warnings;
+use Moo;
 
 use Data::UUID;
 use Time::Moment;
 
-sub new {
-    my $class = shift;
-    my %params = @_ == 1 ? %{$_[0]} : @_;
+has 'uuid',    is => 'ro', builder  => '_generate_id';
+has 'project', is => 'ro', required => 1;
+has 'status',  is => 'rw', default  => sub { 'N' };
+has 'started',  is => 'rw';
+has 'finished', is => 'rw';
 
-    my $self = {%params};
-    bless $self, $class;
+has 'rev',     is => 'ro', required => 1;
+has 'branch',  is => 'ro', required => 1;
+has 'author',  is => 'ro', required => 1;
+has 'message', is => 'ro', required => 1;
 
-    $self->{uuid}   //= $self->_generate_id;
-    $self->{status} //= 'N';
-
-    return $self;
-}
+has 'pid', is => 'rw';
 
 sub columns {
     return (
-        'app',
+        'project',
         'uuid',
 
         'status',
@@ -41,19 +39,12 @@ sub columns {
 sub is_new  { !!shift->{is_new} }
 sub not_new { delete shift->{is_new} }
 
-sub app      { shift->{app} }
-sub uuid     { shift->{uuid} }
-sub status   { shift->{status} }
-sub started  { shift->{started} }
-sub finished { shift->{finished} }
-sub pid      { shift->{pid} }
-
 sub duration {
     my $self = shift;
     my ($from, $to) = @_;
 
-    return 0 unless my $started = $self->{started};
-    my $finished = $self->{finished} || $self->_now;
+    return 0 unless my $started = $self->started;
+    my $finished = $self->finished || $self->_now;
 
     my $duration = 0;
 
@@ -86,7 +77,7 @@ sub status_display {
         'F' => 'danger',
         'C' => 'danger',
         'K' => 'danger',
-    }->{$self->{status}};
+    }->{$self->status};
 }
 
 sub status_name {
@@ -101,27 +92,27 @@ sub status_name {
         'F' => 'Failure',
         'C' => 'Canceling',
         'K' => 'Killed',
-    }->{$self->{status}};
+    }->{$self->status};
 }
 
 sub is_cancelable {
     my $self = shift;
 
-    return $self->{status} eq 'P' || $self->{status} eq 'N';
+    return $self->status eq 'I' || $self->status eq 'P' || $self->status eq 'N';
 }
 
 sub is_restartable {
     my $self = shift;
 
-    return $self->{status} ne 'P' && $self->{status} ne 'N';
+    return $self->status ne 'I' && $self->status ne 'P' && $self->status ne 'N';
 }
 
 sub finish {
     my $self = shift;
     my ($new_status) = @_;
 
-    $self->{status}   = $new_status;
-    $self->{finished} = $self->_now;
+    $self->status($new_status);
+    $self->finished($self->_now);
 
     return 1;
 }
@@ -129,9 +120,9 @@ sub finish {
 sub init {
     my $self = shift;
 
-    return unless $self->{status} eq 'N';
+    return unless $self->status eq 'N';
 
-    $self->{status} = 'I';
+    $self->status('I');
 
     return 1;
 }
@@ -140,12 +131,12 @@ sub start {
     my $self = shift;
     my ($pid) = @_;
 
-    return unless $self->{status} eq 'I';
+    return unless $self->status eq 'I';
 
-    $self->{status}  = 'P';
-    $self->{pid}     = $pid;
-    $self->{started} = $self->_now;
-    $self->{finished} = '';
+    $self->status('P');
+    $self->pid($pid);
+    $self->started($self->_now);
+    $self->finished('');
 
     return 1;
 }
@@ -155,9 +146,9 @@ sub restart {
 
     return unless $self->is_restartable;
 
-    $self->{status}   = 'I';
-    $self->{started}  = '';
-    $self->{finished} = '';
+    $self->status('I');
+    $self->started('');
+    $self->finished('');
 
     return 1;
 }
@@ -167,8 +158,8 @@ sub cancel {
 
     return unless $self->is_cancelable;
 
-    $self->{status}   = 'C';
-    $self->{finished} = $self->_now;
+    $self->status('C');
+    $self->finished($self->_now);
 
     return 1;
 }
@@ -177,13 +168,13 @@ sub to_store {
     my $self = shift;
 
     return {
-        app  => $self->{app},
-        uuid => $self->{uuid},
+        project => $self->project,
+        uuid    => $self->{uuid},
 
-        status => $self->{status},
+        status => $self->status,
 
-        started  => $self->{started}  // '',
-        finished => $self->{finished} // '',
+        started  => $self->started  // '',
+        finished => $self->finished // '',
 
         rev     => $self->{rev},
         branch  => $self->{branch},
@@ -198,27 +189,16 @@ sub to_hash {
     my $self = shift;
 
     return {
-        app  => $self->{app},
-        uuid => $self->{uuid},
+        %{$self->to_store},
 
-        status         => $self->{status},
         status_name    => $self->status_name,
         status_display => $self->status_display,
 
-        is_new => $self->is_new,
+        is_new         => $self->is_new,
         is_cancelable  => $self->is_cancelable,
         is_restartable => $self->is_restartable,
 
-        started  => $self->{started},
-        finished => $self->{finished},
         duration => $self->duration,
-
-        rev     => $self->{rev},
-        branch  => $self->{branch},
-        author  => $self->{author},
-        message => $self->{message},
-
-        pid => $self->{pid},
     };
 }
 

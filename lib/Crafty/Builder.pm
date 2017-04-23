@@ -1,31 +1,108 @@
 package Crafty::Builder;
-
-use strict;
-use warnings;
+use Moo;
 
 use Promises qw(deferred);
 use AnyEvent;
 use Crafty::Runner;
 
-sub new {
-    my $class = shift;
-    my (%params) = @_;
+has 'config', is => 'ro', required => 1;
+has 'db',     is => 'ro', required => 1;
 
-    my $self = {};
-    bless $self, $class;
+sub watch {
+    my $self = shift;
 
-    $self->{root}       = $params{root};
-    $self->{app_config} = $params{app_config};
+    $self->{t} = AnyEvent->timer(
+        interval => 5,
+        cb       => sub {
+            warn 'INTERVAL';
+            eval {
+                $self->work_on_prepared;
+                $self->work_on_canceled;
+            } or do {
+                warn $@
+            };
+        }
+    );
+}
 
-    return $self;
+sub work_on_prepared {
+    my $self = shift;
+
+    my $max_builders = 5;
+
+    $self->db->find(where => [status => 'P'])->then(
+        sub {
+            my ($builds) = @_;
+
+            if ($max_builders > @$builds) {
+                return $self->db->find(
+                    where    => [status  => 'I'],
+                    order_by => [started => 'ASC'],
+                    limit    => $max_builders - @$builds
+                );
+            }
+            else {
+                return deferred->reject;
+            }
+        }
+      )->then(
+        sub {
+            my ($builds) = @_;
+
+            foreach my $build (@$builds) {
+                $self->build(
+                    $build,
+                    on_pid => sub {
+                        my ($pid) = @_;
+
+                        $build->start($pid);
+
+                        $self->db->save($build);
+                    }
+                  )->then(
+                    sub {
+                        my ($build, $status) = @_;
+
+                        $build->finish($status);
+
+                        $self->db->save($build);
+                    }
+                  );
+            }
+        }
+      );
+}
+
+sub work_on_canceled {
+    my $self = shift;
+
+    warn 'CANCEL';
+
+    $self->db->find(where => [status => 'C'])->then(
+        sub {
+            my ($builds) = @_;
+
+            Crafty::Log->info("Canceling %s build(s)", scalar(@$builds));
+
+            foreach my $build (@$builds) {
+                $self->cancel($build)->then(
+                    sub {
+                        $build->finish('K');
+
+                        $self->db->save($build);
+                    }
+                );
+            }
+        }
+    );
 }
 
 sub build {
     my $self = shift;
     my ($build, %params) = @_;
 
-    my $build_dir = sprintf "$self->{root}/data/builds/%s",     $build->uuid;
-    my $stream    = sprintf "$self->{root}/data/builds/%s.log", $build->uuid;
+    my $build_dir = $self->config->catfile('builds_dir', $build->uuid);
+    my $stream    = $self->config->catfile('builds_dir', $build->uuid . '.log');
 
     my $runner = Crafty::Runner->new(
         build_dir => $build_dir,
@@ -33,9 +110,11 @@ sub build {
     );
     $self->{runner} = $runner;
 
+    my $project_config = $self->config->project($build->project);
+
     my $deferred = deferred;
 
-    foreach my $action (@{$self->{app_config}->{build}}) {
+    foreach my $action (@{$project_config->{build}}) {
         my ($key, $value) = %$action;
 
         if ($key eq 'run') {
@@ -70,7 +149,7 @@ sub cancel {
     my $self = shift;
     my ($build) = @_;
 
-    return deffered->promise->resolve unless my $pid = $build->pid;
+    return deffered->resolve($build) unless my $pid = $build->pid;
 
     my $deferred = deferred;
 

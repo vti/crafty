@@ -1,4 +1,4 @@
-package Crafty::Hook::Simple;
+package Crafty::Hook::Rest;
 
 use strict;
 use warnings;

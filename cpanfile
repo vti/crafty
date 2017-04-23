@@ -1,9 +1,11 @@
 requires 'AnyEvent';
 requires 'AnyEvent::Fork';
+requires 'AnyEvent::Fork::Pool';
 requires 'AnyEvent::DBI';
 requires 'EV';
 requires 'Promises';
 
+requires 'Moo';
 requires 'Time::Moment';
 requires 'Class::Load';
 requires 'JSON';
@@ -22,3 +24,4 @@ requires 'Twiggy';
 
 requires 'Test::More';
 requires 'Test::Deep';
+requires 'Test::TempDir::Tiny';

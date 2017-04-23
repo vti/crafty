@@ -1,6 +1,6 @@
 <tr>
     <td>
-        {{app}}
+        {{project}}
     </td>
     <td>
         <a href="/builds/{{uuid}}">{{message}}</a>

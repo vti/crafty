@@ -6,10 +6,14 @@
         '/js/lib/mustache.min.js'
     ], function(eventBus, events, moment, mustache) {
         function formatTimeDuration(text) {
+            if (text <= 0)
+                return 'n/a';
             return moment.duration(text * 1000).humanize();
         }
 
         function formatDateRelative(text) {
+            if (!text)
+                return 'n/a';
             return moment(text).fromNow();
         }
 

@@ -146,7 +146,7 @@ subtest 'to_hash: serializes' => sub {
         started  => '2017-01-02 03:04:05.123+02:00',
         finished => '2017-01-02 03:04:06.123+02:00',
 
-        app => 'my_app',
+        project => 'my_project',
 
         rev     => '123',
         branch  => 'master',
@@ -159,7 +159,7 @@ subtest 'to_hash: serializes' => sub {
     cmp_deeply $build->to_hash, {
         uuid => ignore(),
 
-        app     => 'my_app',
+        project => 'my_project',
         rev     => '123',
         branch  => 'master',
         author  => 'vti',
@@ -184,5 +184,14 @@ subtest 'to_hash: serializes' => sub {
 done_testing;
 
 sub _build {
-    return Crafty::Build->new(@_);
+    return Crafty::Build->new(
+        project => 'test',
+
+        rev     => '123',
+        branch  => 'master',
+        author  => 'vti',
+        message => 'fix',
+
+        @_
+    );
 }

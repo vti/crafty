@@ -1,7 +1,5 @@
 package Crafty::DB;
-
-use strict;
-use warnings;
+use Moo;
 
 use AnyEvent::DBI;
 use Promises qw(deferred);
@@ -9,20 +7,16 @@ use SQL::Composer ':funcs';
 use Crafty::Build;
 use Crafty::EventBus;
 
-sub new {
-    my $class = shift;
-    my (%params) = @_;
+has 'db_file', is => 'ro';
+has 'dbh',
+  is      => 'ro',
+  lazy    => 1,
+  default => sub {
+    my $self = shift;
 
-    my $self = {};
-    bless $self, $class;
-
-    my $dbpath = $params{dbpath};
-
-    my $dbh = AnyEvent::DBI->new("dbi:SQLite:dbname=$dbpath", "", "");
-    $self->{dbh} = $dbh;
-
-    return $self;
-}
+    return AnyEvent::DBI->new('dbi:SQLite:dbname=' . $self->db_file,
+        '', '');
+  };
 
 sub save {
     my $self = shift;
@@ -33,7 +27,7 @@ sub save {
     if ($build->is_new) {
         my $sql = sql_insert into => 'builds', values => [%{$build->to_store}];
 
-        $self->{dbh}->exec(
+        $self->dbh->exec(
             $sql->to_sql,
             $sql->to_bind,
             sub {
@@ -62,7 +56,7 @@ sub save {
           set   => [%{$build->to_store}],
           where => [uuid => $build->uuid];
 
-        $self->{dbh}->exec(
+        $self->dbh->exec(
             $sql->to_sql,
             $sql->to_bind,
             sub {
@@ -91,7 +85,7 @@ sub load {
 
     my $deferred = deferred;
 
-    $self->{dbh}->exec(
+    $self->dbh->exec(
         $sql->to_sql,
         $sql->to_bind,
         sub {
@@ -101,7 +95,7 @@ sub load {
 
             my $build = $sql->from_rows($rows)->[0];
 
-            return $deferred->resolve(Crafty::Build->new($build));
+            return $deferred->resolve(Crafty::Build->new(%$build));
         }
     );
 
@@ -115,7 +109,7 @@ sub count {
 
     my $deferred = deferred;
 
-    $self->{dbh}->exec(
+    $self->dbh->exec(
         $sql->to_sql,
         $sql->to_bind,
         sub {
@@ -132,17 +126,17 @@ sub count {
 
 sub find {
     my $self = shift;
+    my (%params) = @_;
 
     my $sql = sql_select
       from     => 'builds',
       columns  => [Crafty::Build->columns],
-      order_by => ['started' => 'DESC'],
-      limit    => 10,
-      offset   => 0;
+      order_by => ['id' => 'DESC'],
+      %params;
 
     my $deferred = deferred;
 
-    $self->{dbh}->exec(
+    $self->dbh->exec(
         $sql->to_sql,
         $sql->to_bind,
         sub {
@@ -151,7 +145,7 @@ sub find {
             $#_ or die "failure: $@";
 
             $deferred->resolve(
-                [map { Crafty::Build->new($_) } @{$sql->from_rows($rows)}]);
+                [map { Crafty::Build->new(%{$_}) } @{$sql->from_rows($rows)}]);
         }
     );
 

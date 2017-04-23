@@ -1,14 +1,12 @@
 package Crafty::Action::Tail;
-
-use strict;
-use warnings;
-
-use parent 'Crafty::Action::Base';
+use Moo;
+extends 'Crafty::Action::Base';
 
 use JSON ();
 use AnyEvent;
 use Plack::App::EventSource;
 use Crafty::Tail;
+use Crafty::Log;
 
 sub run {
     my $self = shift;
@@ -24,18 +22,13 @@ sub run {
                 my ($build) = @_;
 
                 my $cb = Plack::App::EventSource->new(
-                    headers => [
-
-                        #'Access-Control-Allow-Origin',
-                        #'http://localhost:5000',
-                        'Access-Control-Allow-Credentials',
-                        'true'
-                    ],
+                    headers    => ['Access-Control-Allow-Credentials', 'true'],
                     handler_cb => sub {
                         my ($conn, $env) = @_;
 
-                        my $stream = sprintf "$self->{root}/data/builds/%s.log",
-                          $build->uuid;
+                        my $stream =
+                          $self->config->catfile('builds_dir',
+                            $build->uuid . '.log');
 
                         $self->tail($conn, $stream);
                     }
@@ -46,7 +39,13 @@ sub run {
             sub {
                 $respond->([404, [], ['Not found']]);
             }
-        );
+          )->catch(
+            sub {
+                Crafty::Log->error(@_);
+
+                $respond->([500, [], ['error']]);
+            }
+          );
     };
 }
 

@@ -1,12 +1,9 @@
 package Crafty::Action::Restart;
+use Moo;
+extends 'Crafty::Action::Base';
 
-use strict;
-use warnings;
-
-use parent 'Crafty::Action::Base';
-
-use Crafty::AppConfig;
-use Crafty::Builder;
+use Promises qw(deferred);
+use Crafty::Log;
 
 sub run {
     my $self = shift;
@@ -25,56 +22,20 @@ sub run {
                     return $self->db->save($build);
                 }
                 else {
-                    die 'not found';
+                    return deferred->reject($self->not_found);
                 }
             },
             sub {
-                $respond->([404, [], ['Not found']]);
+                return deferred->reject($self->not_found);
             }
           )->then(
             sub {
                 my ($build) = @_;
 
-                my $app_config =
-                  Crafty::AppConfig->new(root => $self->{root})
-                  ->load($build->app);
-
-                my $builder = Crafty::Builder->new(
-                    app_config => $app_config,
-                    root       => $self->{root}
-                );
-
-                $self->{builder} = $builder;
-
-                my $promise = $builder->build(
-                    $build,
-                    on_pid => sub {
-                        my ($pid) = @_;
-
-                        $build->start($pid);
-
-                        $self->db->save($build);
-                    }
-                );
-
-                $respond->(
-                    [
-                        302, [Location => sprintf("/builds/%s", $build->uuid)],
-                        ['']
-                    ]
-                );
-
-                return $promise;
+                return $self->redirect(sprintf("/builds/%s", $build->uuid),
+                    $respond);
             }
-          )->then(
-            sub {
-                my ($build, $status) = @_;
-
-                $build->finish($status);
-
-                return $self->db->save($build);
-            }
-          );
+          )->catch(sub { $self->handle_error(@_, $respond) });
     };
 }
 

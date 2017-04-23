@@ -9,7 +9,7 @@ use Config;
 BEGIN {
     use File::Basename ();
     use File::Spec     ();
-    $root = File::Spec->catfile( File::Basename::dirname(__FILE__), '..' );
+    $root = File::Spec->catfile(File::Basename::dirname(__FILE__), '..');
 
     unshift @INC, "$root/perl5/lib/perl5"                   if -d "$root/perl5";
     unshift @INC, "$root/perl5/lib/perl5/$Config{archname}" if -d "$root/perl5";
@@ -22,31 +22,36 @@ use Plack::App::EventSource;
 use Plack::App::File;
 use Getopt::Long;
 use Crafty;
+use Crafty::Log;
+use Crafty::Config;
 use Crafty::EventBus;
 
-my $opt_config = 'config.yml';
+my $opt_base   = 'data';
+my $opt_config = 'data/config.yml';
 my $opt_listen = '0.0.0.0:5000';
+my $opt_verbose;
 GetOptions(
     'config=s' => \$opt_config,
+    'base=s'   => \$opt_base,
     'listen=s' => \$opt_listen,
+    'verbose'  => \$opt_verbose,
 ) or die("Error in command line arguments\n");
 
-my $app = Crafty->new(root => $root);
+Crafty::Log->init(verbose => 1) if $opt_verbose;
+
+my $config = Crafty::Config->new(base => $opt_base);
+$config->load($opt_config);
+
+my $app = Crafty->new(config => $config, root => $root);
 
 my $psgi = builder {
     mount '/events' => builder {
         return Plack::App::EventSource->new(
-            headers => [
-
-                #'Access-Control-Allow-Origin',
-                #'http://localhost:5000',
-                'Access-Control-Allow-Credentials',
-                'true'
-            ],
+            headers    => ['Access-Control-Allow-Credentials', 'true'],
             handler_cb => sub {
-                my ( $conn, $env ) = @_;
+                my ($conn, $env) = @_;
 
-                Crafty::EventBus->instance->new_conn( $conn, $env );
+                Crafty::EventBus->instance->new_conn($conn, $env);
             }
         )->to_app;
     };
