@@ -23,5 +23,6 @@ requires 'Plack::Middleware::ReverseProxy';
 requires 'Twiggy';
 
 requires 'Test::More';
+requires 'Test::MonkeyMock';
 requires 'Test::Deep';
 requires 'Test::TempDir::Tiny';

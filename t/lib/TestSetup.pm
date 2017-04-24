@@ -3,7 +3,6 @@ package TestSetup;
 use strict;
 use warnings;
 
-use Test::TempDir::Tiny;
 use DBI;
 use AnyEvent;
 use AnyEvent::DBI;
@@ -14,6 +13,8 @@ use File::Temp;
 use Crafty::DB;
 use Crafty::Config;
 use Crafty::Build;
+use Test::TempDir::Tiny;
+use Test::MonkeyMock;
 
 my $base;
 sub base {
@@ -86,10 +87,22 @@ sub build_action {
     $params{config} //= TestSetup->build_config;
     $params{db}     //= TestSetup->build_db;
     $params{view}   //= TestSetup->build_view;
+    $params{pool}   //= $class->mock_pool();
 
     my $action_class = 'Crafty::Action::' . $action;
 
     return $action_class->new(%params);
+}
+
+sub mock_pool {
+    my $class = shift;
+
+    my $mock = Test::MonkeyMock->new;
+
+    $mock->mock(build => sub {});
+    $mock->mock(start => sub {});
+
+    return $mock;
 }
 
 sub create_build {

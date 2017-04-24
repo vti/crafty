@@ -1,0 +1,5 @@
+#!/bin/sh
+
+export PERL5LIB="lib:perl5/lib/perl5:$PERL5LIB"
+
+"$@"

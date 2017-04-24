@@ -45,7 +45,8 @@ done_testing;
 sub _build {
     return Crafty->new(
         config => TestSetup->build_config,
-        db     => TestSetup->build_db
+        db     => TestSetup->build_db,
+        pool   => TestSetup->mock_pool
     );
 }
 

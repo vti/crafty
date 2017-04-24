@@ -25,7 +25,6 @@ sub start {
         start => 0.1,   # wait this many seconds before starting a new process
         stop  => 10,    # wait this many seconds before stopping an idle process
         on_destroy => sub {
-            warn 'DESTROY';
         },              # called when object is destroyed
 
         # parameters passed to AnyEvent::Fork::RPC
