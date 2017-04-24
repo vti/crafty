@@ -16,6 +16,7 @@ requires 'Text::Caml';
 requires 'Data::UUID';
 requires 'Input::Validator';
 requires 'YAML::Tiny';
+requires 'Kwalify';
 
 requires 'Plack';
 requires 'Plack::App::EventSource';

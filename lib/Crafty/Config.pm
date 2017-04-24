@@ -1,23 +1,13 @@
 package Crafty::Config;
-
-use strict;
-use warnings;
+use Moo;
 
 use YAML::Tiny;
 use File::Spec;
+use Kwalify;
 
-sub new {
-    my $class = shift;
-    my (%params) = @_;
-
-    my $self = {};
-    bless $self, $class;
-
-    $self->{base}   = $params{base};
-    $self->{config} = $params{config};
-
-    return $self;
-}
+has 'base',   is => 'ro', required => 1;
+has 'root',   is => 'ro', required => 1;
+has 'config', is => 'ro';
 
 sub project {
     my $self = shift;
@@ -51,6 +41,8 @@ sub load {
     my $yaml = YAML::Tiny->read($config_file);
     $self->{config} = $yaml->[0];
 
+    $self->validate($self->{config});
+
     $self->{config}->{db_file} =
       $self->resolve_path($self->{config}->{db_file}, 'db.db');
     $self->{config}->{builds_dir} =
@@ -77,6 +69,33 @@ sub catfile {
     my ($option, @path) = @_;
 
     return File::Spec->catfile($self->{config}->{$option}, @path);
+}
+
+sub schema {
+    my $self = shift;
+
+    my $schema_file = "$self->{root}/schema/config.yml";
+
+    die "Can't load schema `$schema_file`: $!\n" unless -f $schema_file;
+
+    my $yaml = YAML::Tiny->read($schema_file);
+    return $yaml->[0];
+}
+
+sub validate {
+    my $self = shift;
+    my ($data) = @_;
+
+    eval { Kwalify::validate($self->schema, $data); } or do {
+        my $error = $@;
+
+        $error =~ s/HASH\(0x.*?\)/\{\}/g;
+        $error =~ s/ARRAY\(0x.*?\)/\[\]/g;
+
+        die "Looks like your config file is not valid:\n\n$error";
+    };
+
+    return $data;
 }
 
 1;

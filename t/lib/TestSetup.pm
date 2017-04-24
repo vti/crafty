@@ -22,6 +22,7 @@ sub import {
 }
 
 my $base;
+
 sub base {
     $base ||= tempdir;
     return $base;
@@ -29,22 +30,31 @@ sub base {
 
 sub build_config {
     my $class = shift;
+    my ($content) = @_;
 
     my $base = $class->base;
 
     open my $fh, '>', "$base/config.yml";
-    print $fh <<'EOF';
+    if (!$content) {
+        print $fh <<'EOF';
 ---
 projects:
     - id: my_project
       webhooks:
         - provider: rest
       build:
-        - run: date
+        - date
 EOF
+    }
+    else {
+        print $fh $content;
+    }
     close $fh;
 
-    my $config = Crafty::Config->new(base => $base);
+    my $config = Crafty::Config->new(
+        root => File::Basename::dirname(__FILE__) . '/../../',
+        base => $base
+    );
     $config->load("$base/config.yml");
 
     return $config;
@@ -104,8 +114,8 @@ sub mock_pool {
 
     my $mock = Test::MonkeyMock->new;
 
-    $mock->mock(build => sub {});
-    $mock->mock(start => sub {});
+    $mock->mock(build => sub { });
+    $mock->mock(start => sub { });
 
     return $mock;
 }

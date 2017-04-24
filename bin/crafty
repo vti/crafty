@@ -39,7 +39,7 @@ GetOptions(
 
 Crafty::Log->init(verbose => 1) if $opt_verbose;
 
-my $config = Crafty::Config->new(base => $opt_base);
+my $config = Crafty::Config->new(root => $root, base => $opt_base);
 $config->load($opt_config);
 
 my $app = Crafty->new(config => $config, root => $root);

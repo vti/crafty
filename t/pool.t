@@ -87,8 +87,13 @@ done_testing;
 sub _build_config {
     my ($cmd) = @_;
 
-    return Crafty::Config->new(
-        config => {projects => [{id => 'my_app', build => [$cmd]}]});
+    return TestSetup->build_config(<<"EOF");
+---
+projects:
+    - id: my_app
+      build:
+        - $cmd
+EOF
 }
 
 sub _build {

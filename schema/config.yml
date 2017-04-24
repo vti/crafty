@@ -1,0 +1,29 @@
+---
+type: map
+mapping:
+  projects:
+    required: 1
+    type: seq
+    sequence:
+    - mapping:
+        id:
+          type: str
+        webhooks:
+          type: seq
+          sequence:
+          - type: map
+            mapping:
+              provider:
+                type: str
+        build:
+          type: seq
+          sequence:
+          - type: str
+      type: map
+  workers:
+    type: map
+    mapping:
+      language:
+        type: int
+      stopwaitsecs:
+        type: int
