@@ -1,19 +1,8 @@
 package Crafty::Tail;
-
-use strict;
-use warnings;
+use Moo;
 
 use AnyEvent::Handle;
 use AnyEvent::Fork;
-
-sub new {
-    my $class = shift;
-
-    my $self = {};
-    bless $self, $class;
-
-    return $self;
-}
 
 sub tail {
     my $self = shift;

@@ -22,7 +22,9 @@ requires 'Plack::App::EventSource';
 requires 'Plack::Middleware::ReverseProxy';
 requires 'Twiggy';
 
-requires 'Test::More';
-requires 'Test::MonkeyMock';
-requires 'Test::Deep';
-requires 'Test::TempDir::Tiny';
+on 'test' => sub {
+    requires 'Test::More';
+    requires 'Test::MonkeyMock';
+    requires 'Test::Deep';
+    requires 'Test::TempDir::Tiny';
+};
