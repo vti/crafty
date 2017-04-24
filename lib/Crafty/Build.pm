@@ -7,6 +7,7 @@ use Time::Moment;
 has 'uuid',    is => 'ro', builder  => '_generate_id';
 has 'project', is => 'ro', required => 1;
 has 'status',  is => 'rw', default  => sub { 'N' };
+has 'created',  is => 'rw';
 has 'started',  is => 'rw';
 has 'finished', is => 'rw';
 
@@ -123,6 +124,7 @@ sub init {
     return unless $self->status eq 'N';
 
     $self->status('I');
+    $self->created($self->_now);
 
     return 1;
 }

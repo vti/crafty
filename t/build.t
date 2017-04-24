@@ -87,7 +87,7 @@ subtest 'finish: finishes' => sub {
 
     ok $build->finish('S');
     is $build->status,     'S';
-    isnt $build->finished, '';
+    like $build->finished, qr/^\d{4}-/;
 };
 
 subtest 'init: inits' => sub {
@@ -98,6 +98,7 @@ subtest 'init: inits' => sub {
     $build = _build(status => 'N');
 
     ok $build->init;
+    like $build->created, qr/^\d{4}-/;
     is $build->status, 'I';
 };
 
@@ -109,7 +110,7 @@ subtest 'start: starts' => sub {
     $build = _build(status => 'I');
 
     ok $build->start(123);
-    isnt $build->started, '';
+    like $build->started, qr/^\d{4}-/;
     is $build->status,    'P';
     is $build->pid,       123;
 };
@@ -136,7 +137,7 @@ subtest 'cancel: cancels' => sub {
     $build = _build(status => 'P', started => '2017-01-02');
 
     ok $build->cancel;
-    isnt $build->finished, '';
+    like $build->finished, qr/^\d{4}-/;
     is $build->status,     'C';
 };
 

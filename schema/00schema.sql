@@ -10,6 +10,7 @@ CREATE TABLE builds (
  status text NOT NULL DEFAULT 'N',
  pid integer NOT NULL DEFAULT 0,
 
+ created text NOT NULL DEFAULT '',
  started text NOT NULL DEFAULT '',
  finished text NOT NULL DEFAULT '',
  duration real NOT NULL DEFAULT 0.0
