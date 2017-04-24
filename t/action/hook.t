@@ -53,6 +53,7 @@ subtest 'creates build' => sub {
     my $build = TestSetup->load_build($uuid);
 
     is $build->status, 'I';
+    like $build->created, qr/^\d{4}-/;
 };
 
 done_testing;

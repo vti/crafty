@@ -11,10 +11,15 @@ use File::Path;
 use File::Basename;
 use File::Temp;
 use Crafty::DB;
+use Crafty::Log;
 use Crafty::Config;
 use Crafty::Build;
 use Test::TempDir::Tiny;
 use Test::MonkeyMock;
+
+sub import {
+    $Crafty::Log::QUIET = 1;
+}
 
 my $base;
 sub base {
@@ -114,7 +119,6 @@ sub create_build {
         branch  => 'master',
         author  => 'vti',
         message => 'fix',
-        status  => 'S',
         @_
     );
 

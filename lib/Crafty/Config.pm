@@ -13,7 +13,8 @@ sub new {
     my $self = {};
     bless $self, $class;
 
-    $self->{base} = $params{base};
+    $self->{base}   = $params{base};
+    $self->{config} = $params{config};
 
     return $self;
 }

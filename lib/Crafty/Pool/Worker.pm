@@ -12,7 +12,7 @@ sub init {
 my $count = 0;
 
 sub run {
-    my ($done, $build) = @_;
+    my ($done, $build, $cmds) = @_;
 
     my $uuid = $build->{uuid};
 
@@ -22,7 +22,7 @@ sub run {
         stream    => 'data/builds/' . $uuid . '.log',
         build_dir => 'data/builds/' . $uuid
       )->run(
-        cmd    => ['date; sleep 5; date'],
+        cmds   => $cmds,
         on_pid => sub {
             my ($pid) = @_;
 
@@ -33,12 +33,12 @@ sub run {
 
             AnyEvent::Fork::RPC::event($$, 'build.done', $uuid, $exit_code);
 
-            $done->();
+            $done->() if $done;
         },
         on_error => sub {
             AnyEvent::Fork::RPC::event($$, 'build.error', $uuid);
 
-            $done->();
+            $done->() if $done;
         }
       );
 

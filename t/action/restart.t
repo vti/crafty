@@ -43,7 +43,7 @@ subtest 'error when build not restartable' => sub {
 subtest 'redirects' => sub {
     my $action = _build(env => {});
 
-    my $build = TestSetup->create_build();
+    my $build = TestSetup->create_build(status => 'S');
 
     my $cb = $action->run(build_id => $build->uuid);
 

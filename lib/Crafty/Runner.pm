@@ -27,6 +27,8 @@ sub run {
     my $self = shift;
     my (%params) = @_;
 
+    my $cmds = $params{cmds};
+
     my $build_dir = $self->{build_dir};
 
     make_path $build_dir;
@@ -42,7 +44,7 @@ sub run {
     my $fork = AnyEvent::Fork->new;
     $fork->eval('
                sub run {
-                  my ($fh, $ex, $build_dir, @cmd) = @_;
+                  my ($fh, $ex, $build_dir, @cmds) = @_;
 
                   open STDOUT, ">&", $fh or die;
                   open STDERR, ">&", $fh or die;
@@ -53,22 +55,25 @@ sub run {
                   print "$_=$ENV{$_}\n" for sort keys %ENV;
                   print "\n";
 
-                  print @cmd, "\n";
-
-                  my $cmd = join " ", @cmd;
-
                   $|++;
 
-                  open my $pipe, "$cmd |" or die $!;
+                  my $exit_code;
+                  foreach my $cmd (@cmds) {
+                      print $cmd, "\n";
 
-                  $SIG{INT} = sub { close $pipe; print "Killed\n"; exit 255 };
+                      open my $pipe, "$cmd |" or die $!;
 
-                  while (<$pipe>) {
-                      print $_;
+                      $SIG{INT} = sub { close $pipe; print "Killed\n"; exit 255 };
+
+                      while (<$pipe>) {
+                          print $_;
+                      }
+                      close $pipe;
+
+                      $exit_code = $?;
+
+                      last if $exit_code;
                   }
-                  close $pipe;
-
-                  my $exit_code = $?;
 
                   print $ex $exit_code;
 
@@ -81,7 +86,7 @@ sub run {
             ');
     $fork->send_fh($tmp);
     $fork->send_arg($build_dir);
-    $fork->send_arg(@{$params{cmd}});
+    $fork->send_arg(@$cmds);
     $fork->run(
         run => sub {
             my ($fh) = @_;
@@ -103,6 +108,7 @@ sub run {
 
                     seek $tmp, 0, 0;
                     my $exit_code = <$tmp>;
+                    $exit_code >>= 8 if defined $exit_code;
 
                     $params{on_eof}->($exit_code);
                 },

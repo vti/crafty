@@ -3,6 +3,7 @@ use warnings;
 
 use Test::More;
 use Test::Deep;
+use TestSetup;
 
 use_ok 'Crafty::Build';
 
@@ -99,7 +100,7 @@ subtest 'init: inits' => sub {
 
     ok $build->init;
     like $build->created, qr/^\d{4}-/;
-    is $build->status, 'I';
+    is $build->status,    'I';
 };
 
 subtest 'start: starts' => sub {
@@ -109,10 +110,9 @@ subtest 'start: starts' => sub {
 
     $build = _build(status => 'I');
 
-    ok $build->start(123);
+    ok $build->start;
     like $build->started, qr/^\d{4}-/;
     is $build->status,    'P';
-    is $build->pid,       123;
 };
 
 subtest 'restart: restarts' => sub {
@@ -143,9 +143,11 @@ subtest 'cancel: cancels' => sub {
 
 subtest 'to_hash: serializes' => sub {
     my $build = _build(
-        status   => 'N',
+        status => 'N',
+
+        created  => '2017-01-01 03:04:05.123+02:00',
         started  => '2017-01-02 03:04:05.123+02:00',
-        finished => '2017-01-02 03:04:06.123+02:00',
+        finished => '2017-01-03 03:04:06.123+02:00',
 
         project => 'my_project',
 
@@ -170,8 +172,9 @@ subtest 'to_hash: serializes' => sub {
         status_display => 'default',
         status_name    => 'New',
 
+        created  => re(qr/2017-01-01/),
         started  => re(qr/2017-01-02/),
-        finished => re(qr/2017-01-02/),
+        finished => re(qr/2017-01-03/),
         duration => re(qr/1\.2/),
 
         is_new         => '1',

@@ -3,20 +3,22 @@ use Moo;
 
 use Data::UUID;
 use Time::Moment;
+use Crafty::Log;
 
-has 'uuid',    is => 'ro', builder  => '_generate_id';
-has 'project', is => 'ro', required => 1;
-has 'status',  is => 'rw', default  => sub { 'N' };
-has 'created',  is => 'rw';
-has 'started',  is => 'rw';
-has 'finished', is => 'rw';
+has 'uuid', is => 'ro', builder => '_generate_id', predicate => 1;
+has 'project', is => 'ro', required => 1, predicate => 1;
+has 'status', is => 'rw', default => sub { 'N' }, predicate => 1;
 
-has 'rev',     is => 'ro', required => 1;
-has 'branch',  is => 'ro', required => 1;
-has 'author',  is => 'ro', required => 1;
-has 'message', is => 'ro', required => 1;
+has 'created',  is => 'rw', predicate => 1;
+has 'started',  is => 'rw', predicate => 1;
+has 'finished', is => 'rw', predicate => 1;
 
-has 'pid', is => 'rw';
+has 'rev',     is => 'ro', required => 1, predicate => 1;
+has 'branch',  is => 'ro', required => 1, predicate => 1;
+has 'author',  is => 'ro', required => 1, predicate => 1;
+has 'message', is => 'ro', required => 1, predicate => 1;
+
+has 'pid', is => 'rw', predicate => 1;
 
 sub columns {
     return (
@@ -25,6 +27,7 @@ sub columns {
 
         'status',
 
+        'created',
         'started',
         'finished',
 
@@ -121,7 +124,11 @@ sub finish {
 sub init {
     my $self = shift;
 
-    return unless $self->status eq 'N';
+    unless ($self->status eq 'N') {
+        Crafty::Log->error('Build %s is in invalid status for init: %s',
+            $self->uuid, $self->status);
+        return;
+    }
 
     $self->status('I');
     $self->created($self->_now);
@@ -131,12 +138,14 @@ sub init {
 
 sub start {
     my $self = shift;
-    my ($pid) = @_;
 
-    return unless $self->status eq 'I';
+    unless ($self->status eq 'I') {
+        Crafty::Log->error('Build %s is in invalid status for start: %s',
+            $self->uuid, $self->status);
+        return;
+    }
 
     $self->status('P');
-    $self->pid($pid);
     $self->started($self->_now);
     $self->finished('');
 
@@ -146,8 +155,13 @@ sub start {
 sub restart {
     my $self = shift;
 
-    return unless $self->is_restartable;
+    unless ($self->is_restartable) {
+        Crafty::Log->error('Build %s is in invalid status for restart: %s',
+            $self->uuid, $self->status);
+        return;
+    }
 
+    $self->pid(0);
     $self->status('I');
     $self->started('');
     $self->finished('');
@@ -158,7 +172,11 @@ sub restart {
 sub cancel {
     my $self = shift;
 
-    return unless $self->is_cancelable;
+    unless ($self->is_cancelable) {
+        Crafty::Log->error('Build %s is in invalid status for cancel: %s',
+            $self->uuid, $self->status);
+        return;
+    }
 
     $self->status('C');
     $self->finished($self->_now);
@@ -169,22 +187,16 @@ sub cancel {
 sub to_store {
     my $self = shift;
 
-    return {
-        project => $self->project,
-        uuid    => $self->{uuid},
+    my $store = {uuid => $self->uuid};
 
-        status => $self->status,
+    foreach my $column ($self->columns) {
+        my $predicate = 'has_' . $column;
+        next unless $self->$predicate;
 
-        started  => $self->started  // '',
-        finished => $self->finished // '',
+        $store->{$column} = $self->$column;
+    }
 
-        rev     => $self->{rev},
-        branch  => $self->{branch},
-        author  => $self->{author},
-        message => $self->{message},
-
-        pid => $self->{pid} // 0,
-    };
+    return $store;
 }
 
 sub to_hash {

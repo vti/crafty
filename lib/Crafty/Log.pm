@@ -3,21 +3,26 @@ package Crafty::Log;
 use strict;
 use warnings;
 
-my $VERBOSE = 0;
+our $VERBOSE = 0;
+our $QUIET   = 0;
 
 sub init {
     my $class = shift;
     my (%params) = @_;
 
     $VERBOSE = 1 if $params{verbose};
+    $QUIET   = 1 if $params{quiet};
 
     return $class;
 }
 
 sub error {
     my $class = shift;
+    my ($msg, @args) = @_;
 
-    warn "ERROR: " . join('', @_) . "\n";
+    return if $QUIET;
+
+    warn "ERROR: " . sprintf($msg, @args) . "\n";
 }
 
 sub info {
