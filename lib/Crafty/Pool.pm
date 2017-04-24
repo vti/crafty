@@ -3,7 +3,7 @@ use Moo;
 
 has 'config', is => 'ro', required => 1;
 has 'db',     is => 'ro', required => 1;
-has 'on_destroy', is => 'ro';
+has '_on_destroy', is => 'rw';
 has '_pool',      is => 'rw';
 
 use AnyEvent::Fork;
@@ -29,20 +29,19 @@ sub start {
         on_destroy => sub {
             Crafty::Log->info('Pool destroyed');
 
-            $self->on_destroy->() if $self->on_destroy;
+            $self->_on_destroy->() if $self->_on_destroy;
         },              # called when object is destroyed
 
         # parameters passed to AnyEvent::Fork::RPC
         async    => 1,
         on_error => sub {
-            warn 'Worker exited';
+            Crafty::Log->info('Worker exited');
         },
         on_event => sub { $self->_handle_worker_event(@_) },
         init       => 'Crafty::Pool::Worker::init',
         serialiser => $AnyEvent::Fork::RPC::JSON_SERIALISER,
       );
 
-    $self->{cv} = AnyEvent->condvar;
     $self->_pool($pool);
 
     Crafty::Log->info('Pool started');
@@ -54,10 +53,60 @@ sub start {
 
 sub stop {
     my $self = shift;
+    my ($done) = @_;
 
-    $self->{cv}->recv;
+    if ($self->_pool) {
+        if (my @queue = @Crafty::Fork::Pool::queue) {
+            Crafty::Log->info('Cleaning up queue (%s)', scalar(@queue));
 
-    $self->_pool(undef);
+            @Crafty::Fork::Pool::queue = ();
+        }
+
+        my $workers = $self->{status};
+
+        my @waitlist;
+        if (%$workers) {
+            foreach my $worker_pid (keys %$workers) {
+                my $uuid = $workers->{$worker_pid}->{uuid};
+                my $pid  = $workers->{$worker_pid}->{pid};
+
+                if ($pid && kill 0, $pid) {
+                    push @waitlist, {uuid => $uuid, pid => $pid};
+                }
+            }
+        }
+
+        if (@waitlist) {
+            Crafty::Log->info('Waiting for workers to finish (%s)',
+                scalar(@waitlist));
+
+            $self->{t} = AnyEvent->timer(
+                interval => 0.5,
+                cb       => sub {
+                    foreach my $wait (@waitlist) {
+                        if (kill 0, $wait->{pid}) {
+                            warn "waiting for $wait->{pid}...";
+                            return;
+                        }
+                    }
+
+                    delete $self->{t};
+
+                    $self->{cv}->recv if $self->{cv};
+
+                    $self->_pool(undef);
+
+                    $done->();
+                }
+            );
+        }
+        else {
+            $self->{cv}->recv if $self->{cv};
+
+            $self->_on_destroy(sub { $done->() });
+            $self->_pool(undef);
+        }
+    }
 
     return $self;
 }
@@ -176,7 +225,7 @@ sub _handle_worker_event {
     elsif ($ev eq 'build.pid') {
         my $pid = $args[0];
 
-        Crafty::Log->info('Build %s forked', $uuid);
+        Crafty::Log->info('Build %s forked (%s)', $uuid, $pid);
 
         $worker->{status} = 'forked';
 
@@ -232,6 +281,8 @@ sub _handle_worker_event {
 sub _sync_build {
     my $self = shift;
     my ($build) = @_;
+
+    $self->{cv} //= AnyEvent->condvar;
 
     $self->{cv}->begin;
     $self->db->save($build)->then(sub { $self->{cv}->end });

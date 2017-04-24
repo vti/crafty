@@ -40,6 +40,19 @@ sub BUILD {
     $self->pool->start;
 }
 
+sub stop {
+    my $self = shift;
+    my ($cb) = @_;
+
+    $self->pool->stop(
+        sub {
+            delete $self->{pool};
+
+            $cb->();
+        }
+    );
+}
+
 sub build_routes {
     my $self = shift;
 

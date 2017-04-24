@@ -44,6 +44,12 @@ $config->load($opt_config);
 
 my $app = Crafty->new(config => $config, root => $root);
 
+my $w; $w = AE::signal HUP => sub {
+    warn "Exiting...\n";
+
+    $app->stop(sub { sleep 2; undef $w; kill 'INT', $$ });
+};
+
 my $psgi = builder {
     mount '/events' => builder {
         return Plack::App::EventSource->new(
@@ -70,7 +76,7 @@ my $psgi = builder {
     };
 };
 
-warn "Listening on $opt_listen\n";
+warn "Listening on $opt_listen ($$)\n";
 
 my $runner = Plack::Runner->new;
 $runner->parse_options(
