@@ -85,7 +85,7 @@ sub stop {
                 cb       => sub {
                     foreach my $wait (@waitlist) {
                         if (kill 0, $wait->{pid}) {
-                            warn "waiting for $wait->{pid}...";
+                            Crafty::Log->info("Waiting for $wait->{pid}...");
                             return;
                         }
                     }
