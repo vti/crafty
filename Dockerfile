@@ -15,7 +15,7 @@ RUN cd /opt/crafty/; bin/bootstrap
 
 EXPOSE 5000
 
+VOLUME  ["/opt/crafty/data"]
+
 COPY docker/entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
-
-VOLUME  ["/opt/crafty/data"]

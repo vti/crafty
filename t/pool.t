@@ -12,18 +12,17 @@ subtest 'build: builds successfully' => sub {
 
     my $cv = AnyEvent->condvar;
 
-    $cv->begin;
-
-    my $pool = _build(
-        config     => _build_config('date'),
-        on_destroy => sub { $cv->end; }
-    );
+    my $pool = _build(config => _build_config('date'));
 
     $cv->begin;
 
     $pool->start;
     $pool->build($build, sub { $cv->end });
-    $pool->stop;
+
+    $cv->recv;
+
+    $cv->begin;
+    $pool->stop(sub { $cv->end });
 
     $cv->recv;
 
@@ -37,18 +36,18 @@ subtest 'build: builds failure' => sub {
 
     my $cv = AnyEvent->condvar;
 
-    $cv->begin;
-
-    my $pool = _build(
-        config     => _build_config('date; exit 255'),
-        on_destroy => sub { $cv->end; }
-    );
+    my $pool = _build(config => _build_config('date; exit 255'));
 
     $cv->begin;
 
     $pool->start;
     $pool->build($build, sub { $cv->end });
-    $pool->stop;
+
+    $cv->recv;
+
+    $cv->begin;
+
+    $pool->stop(sub { $cv->end });
 
     $cv->recv;
 
@@ -62,18 +61,17 @@ subtest 'build: builds killed' => sub {
 
     my $cv = AnyEvent->condvar;
 
-    $cv->begin;
-
-    my $pool = _build(
-        config     => _build_config('exit 255'),
-        on_destroy => sub { $cv->end; }
-    );
+    my $pool = _build(config => _build_config('exit 255'));
 
     $cv->begin;
 
     $pool->start;
     $pool->build($build, sub { $cv->end });
-    $pool->stop;
+
+    $cv->recv;
+
+    $cv->begin;
+    $pool->stop(sub { $cv->end });
 
     $cv->recv;
 

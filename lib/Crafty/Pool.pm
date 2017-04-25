@@ -94,16 +94,15 @@ sub stop {
 
                     $self->{cv}->recv if $self->{cv};
 
+                    $self->_on_destroy(sub { $done->() if $done });
                     $self->_pool(undef);
-
-                    $done->();
                 }
             );
         }
         else {
             $self->{cv}->recv if $self->{cv};
 
-            $self->_on_destroy(sub { $done->() });
+            $self->_on_destroy(sub { $done->() if $done });
             $self->_pool(undef);
         }
     }
@@ -207,6 +206,10 @@ sub _handle_worker_event {
 
     $worker->{uuid} = $uuid;
 
+    $self->{cv} //= AnyEvent->condvar;
+
+    $self->{cv}->begin;
+
     if ($ev eq 'build.started') {
         Crafty::Log->info('Build %s started', $uuid);
 
@@ -282,9 +285,6 @@ sub _sync_build {
     my $self = shift;
     my ($build) = @_;
 
-    $self->{cv} //= AnyEvent->condvar;
-
-    $self->{cv}->begin;
     $self->db->save($build)->then(sub { $self->{cv}->end });
 }
 
