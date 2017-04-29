@@ -22,7 +22,10 @@ sub error {
 
     return if $QUIET;
 
-    warn "ERROR: " . sprintf($msg, @args) . "\n";
+    $msg = sprintf($msg, @args);
+    $msg =~ s{\s+$}{};
+
+    warn "ERROR: " . $msg . "\n";
 }
 
 sub info {

@@ -47,7 +47,7 @@ my $app = Crafty->new(config => $config, root => $root);
 my $w; $w = AE::signal HUP => sub {
     warn "Exiting gracefully (waiting for everything to finish)...\n";
 
-    $app->stop(sub { sleep 2; undef $w; kill 'QUIT', $$ });
+    $app->stop(sub { sleep 2; undef $w; kill 'QUIT', $$; sleep 5; kill 'TERM', $$; });
 };
 
 my $psgi = builder {

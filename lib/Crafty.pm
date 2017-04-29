@@ -37,6 +37,8 @@ has 'pool',
 sub BUILD {
     my $self = shift;
 
+    Crafty::Log->info("Starting app");
+
     $self->pool->start;
 }
 
@@ -47,6 +49,8 @@ sub stop {
     $self->pool->stop(
         sub {
             delete $self->{pool};
+
+            Crafty::Log->info("Stopping app");
 
             $cb->();
         }

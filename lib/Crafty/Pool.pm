@@ -81,7 +81,7 @@ sub stop {
                 scalar(@waitlist));
 
             $self->{t} = AnyEvent->timer(
-                interval => 0.5,
+                interval => 2,
                 cb       => sub {
                     foreach my $wait (@waitlist) {
                         if (kill 0, $wait->{pid}) {
@@ -265,7 +265,11 @@ sub _handle_worker_event {
         delete $self->{status}->{$worker_id}->{$uuid};
     }
     elsif ($ev eq 'build.error') {
-        Crafty::Log->info('Build %s errored');
+        my $error = $args[0];
+
+        Crafty::Log->error($error);
+
+        Crafty::Log->info('Build %s errored', $uuid);
 
         $self->db->load($uuid)->then(
             sub {
