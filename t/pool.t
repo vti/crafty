@@ -80,6 +80,27 @@ subtest 'build: builds killed' => sub {
     is $build->status, 'K';
 };
 
+subtest 'cancel: removes unknown builds' => sub {
+    my $build = TestSetup->create_build(project => 'my_app', status => 'P');
+
+    my $cv = AnyEvent->condvar;
+
+    my $pool = _build();
+
+    $pool->start;
+
+    $pool->cancel($build);
+
+    $cv->begin;
+    $pool->stop(sub { $cv->end });
+
+    $cv->recv;
+
+    $build = TestSetup->load_build($build->uuid);
+
+    is $build->status, 'K';
+};
+
 done_testing;
 
 sub _build_config {
@@ -95,5 +116,5 @@ EOF
 }
 
 sub _build {
-    return Crafty::Pool->new(db => TestSetup->build_db, @_);
+    return Crafty::Pool->new(db => TestSetup->build_db, config => {}, @_);
 }

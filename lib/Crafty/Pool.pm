@@ -119,10 +119,8 @@ sub build {
     Crafty::Log->info('Build %s scheduled', $build->uuid);
 
     $self->_pool->(
-        $self->config->{config}->{pool},
-        $build->to_hash,
-        $project_config->{build},
-        $done || sub { }
+        $self->config->{config}->{pool}, $build->to_hash,
+        $project_config->{build}, $done || sub { }
     );
 }
 
@@ -130,6 +128,7 @@ sub cancel {
     my $self = shift;
     my ($build) = @_;
 
+    my $canceled = 0;
     foreach my $worker_id (keys %{ $self->{status} }) {
         my $worker = $self->{status}->{$worker_id};
 
@@ -146,7 +145,17 @@ sub cancel {
             else {
                 Crafty::Log->info('Build %s already finished', $build->uuid);
             }
+
+            $canceled++;
+            last;
         }
+    }
+
+    if (!$canceled) {
+        Crafty::Log->info('Build %s unknown to pool, removing', $build->uuid);
+
+        $build->finish('K');
+        $self->_sync_build($build);
     }
 }
 
