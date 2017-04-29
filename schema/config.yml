@@ -1,6 +1,13 @@
 ---
 type: map
 mapping:
+  pool:
+    type: map
+    mapping:
+      workers:
+        type: int
+      max_builds:
+        type: int
   projects:
     required: 1
     type: seq

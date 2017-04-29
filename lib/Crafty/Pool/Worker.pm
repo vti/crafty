@@ -9,10 +9,10 @@ use Crafty::Runner;
 sub init {
 }
 
-my $count = 0;
+my $builds = 0;
 
 sub run {
-    my ($done, $build, $cmds) = @_;
+    my ($done, $config, $build, $cmds) = @_;
 
     my $uuid = $build->{uuid};
 
@@ -54,8 +54,11 @@ sub run {
         $done->() if $done;
     };
 
-    #++$count == 1
-    #and AnyEvent::Fork::Pool::retire();
+    ++$builds;
+
+    if ($config->{max_builds} && $builds >= $config->{max_builds}) {
+        AnyEvent::Fork::Pool::retire();
+    }
 
     return;
 }

@@ -4,9 +4,10 @@ use Moo;
 has 'config', is => 'ro', required => 1;
 has 'db',     is => 'ro', required => 1;
 has '_on_destroy', is => 'rw';
-has '_pool',      is => 'rw';
+has '_pool',       is => 'rw';
 
 use AnyEvent::Fork;
+use AnyEvent::Fork::Pool;
 use Crafty::Log;
 use Crafty::Fork::Pool;
 
@@ -15,24 +16,23 @@ sub start {
 
     $self->{status} = {};
 
+    my $workers = $self->config->{config}->{pool}->{workers}
+      // scalar AnyEvent::Fork::Pool::ncpu [4];
+
     my $pool =
       AnyEvent::Fork->new->require('Crafty::Pool::Worker')
       ->Crafty::Fork::Pool::run(
-        'Crafty::Pool::Worker::run',    # the worker function
-
-        # pool management
-        max   => 4,     # absolute maximum # of processes
-        idle  => 4,     # minimum # of idle processes
-        load  => 1,     # queue at most this number of jobs per process
-        start => 0.1,   # wait this many seconds before starting a new process
-        stop  => 10,    # wait this many seconds before stopping an idle process
+        'Crafty::Pool::Worker::run',
+        max        => $workers,
+        idle       => $workers,
+        load       => 1,
+        start      => 0.1,
+        stop       => 2,
         on_destroy => sub {
             Crafty::Log->info('Pool destroyed');
 
             $self->_on_destroy->() if $self->_on_destroy;
-        },              # called when object is destroyed
-
-        # parameters passed to AnyEvent::Fork::RPC
+        },
         async    => 1,
         on_error => sub {
             Crafty::Log->info('Worker exited');
@@ -44,7 +44,7 @@ sub start {
 
     $self->_pool($pool);
 
-    Crafty::Log->info('Pool started');
+    Crafty::Log->info('Pool started with %s worker(s)', $workers);
 
     #$self->_process_prepared;
 
@@ -71,7 +71,7 @@ sub stop {
                 my $pid  = $workers->{$worker_pid}->{pid};
 
                 if ($pid && kill 0, $pid) {
-                    push @waitlist, {uuid => $uuid, pid => $pid};
+                    push @waitlist, { uuid => $uuid, pid => $pid };
                 }
             }
         }
@@ -118,14 +118,19 @@ sub build {
 
     Crafty::Log->info('Build %s scheduled', $build->uuid);
 
-    $self->_pool->($build->to_hash, $project_config->{build}, $done || sub { });
+    $self->_pool->(
+        $self->config->{config}->{pool},
+        $build->to_hash,
+        $project_config->{build},
+        $done || sub { }
+    );
 }
 
 sub cancel {
     my $self = shift;
     my ($build) = @_;
 
-    foreach my $worker_id (keys %{$self->{status}}) {
+    foreach my $worker_id (keys %{ $self->{status} }) {
         my $worker = $self->{status}->{$worker_id};
 
         Crafty::Log->info('Canceling build %s', $build->uuid);
@@ -186,8 +191,8 @@ sub _process_prepared {
     my $self = shift;
 
     $self->db->find(
-        where    => [status  => 'I'],
-        order_by => [started => 'ASC'],
+        where    => [ status  => 'I' ],
+        order_by => [ started => 'ASC' ],
       )->then(
         sub {
             my ($builds) = @_;

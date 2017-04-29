@@ -92,7 +92,7 @@ sub validate {
         $error =~ s/HASH\(0x.*?\)/\{\}/g;
         $error =~ s/ARRAY\(0x.*?\)/\[\]/g;
 
-        die "Looks like your config file is not valid:\n\n$error";
+        die "ERROR: Looks like your config file is not valid:\n\n$error";
     };
 
     return $data;
