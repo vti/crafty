@@ -21,26 +21,38 @@ sub run {
     my $runner = Crafty::Runner->new(
         stream    => 'data/builds/' . $uuid . '.log',
         build_dir => 'data/builds/' . $uuid
-      )->run(
-        cmds   => $cmds,
-        on_pid => sub {
-            my ($pid) = @_;
+    );
 
-            AnyEvent::Fork::RPC::event($$, 'build.pid', $uuid, $pid);
-        },
-        on_eof => sub {
-            my ($exit_code) = @_;
+    eval {
+        $runner->run(
+            cmds   => $cmds,
+            on_pid => sub {
+                my ($pid) = @_;
 
-            AnyEvent::Fork::RPC::event($$, 'build.done', $uuid, $exit_code);
+                AnyEvent::Fork::RPC::event($$, 'build.pid', $uuid, $pid);
+            },
+            on_eof => sub {
+                my ($exit_code) = @_;
 
-            $done->() if $done;
-        },
-        on_error => sub {
-            AnyEvent::Fork::RPC::event($$, 'build.error', $uuid);
+                AnyEvent::Fork::RPC::event($$, 'build.done', $uuid, $exit_code);
 
-            $done->() if $done;
-        }
-      );
+                $done->() if $done;
+            },
+            on_error => sub {
+                AnyEvent::Fork::RPC::event($$, 'build.error', $uuid);
+
+                $done->() if $done;
+            }
+        );
+
+        1;
+    } or do {
+        my $e = $@;
+
+        AnyEvent::Fork::RPC::event($$, 'build.error', $uuid, $e);
+
+        $done->() if $done;
+    };
 
     #++$count == 1
     #and AnyEvent::Fork::Pool::retire();
