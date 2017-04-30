@@ -3,11 +3,13 @@ use Moo;
 
 use Promises qw(deferred);
 use AnyEvent::DBI;
+use AnyEvent::HTTP;
 use SQL::Composer ':funcs';
 use Crafty::Build;
-use Crafty::EventBus;
+use Crafty::PubSub;
 
-has 'db_file', is => 'ro';
+has 'config',  is => 'ro', required => 1;
+has 'db_file', is => 'ro', required => 1;
 has 'dbh',
   is      => 'ro',
   lazy    => 1,
@@ -41,12 +43,14 @@ sub save {
                     'last_insert_id' => sub {
                         my ($dbh, $id, $error) = @_;
 
-                        $self->_broadcast('build.new', $build->to_hash);
-
                         $build->version(1);
                         $build->not_new;
 
-                        $deferred->resolve($build);
+                        return $self->_broadcast('build.new', $build->to_hash)->then(
+                            sub {
+                                $deferred->resolve($build);
+                            }
+                        );
                     }
                 );
             }
@@ -67,17 +71,18 @@ sub save {
                 $#_ or die "failure: $@";
 
                 if ($rv eq '0E0') {
-                    Crafty::Log->error("Build %s not updated (version %d)",
-                        $build->uuid, $build->version);
+                    Crafty::Log->error("Build %s not updated (version %d)", $build->uuid, $build->version);
 
                     return $deferred->reject;
                 }
 
                 $build->version($build->version + 1);
 
-                $self->_broadcast('build', $build->to_hash);
-
-                $deferred->resolve($build);
+                $self->_broadcast('build', $build->to_hash)->then(
+                    sub {
+                        return $deferred->resolve($build);
+                    }
+                );
             }
         );
     }
@@ -87,14 +92,16 @@ sub save {
 
 sub update_field {
     my $self = shift;
-    my ($build, $key, $value) = @_;
+    my ($build, %values) = @_;
+
+    my $uuid = ref $build ? $build->uuid : $build;
 
     my $deferred = deferred;
 
     my $sql = sql_update
       table => 'builds',
-      set   => [ $key => $value ],
-      where => [ uuid => $build->uuid ];
+      set   => [%values],
+      where => [ uuid => $uuid ];
 
     $self->dbh->exec(
         $sql->to_sql,
@@ -105,14 +112,50 @@ sub update_field {
             $#_ or die "failure: $@";
 
             if ($rv eq '0E0') {
-                Crafty::Log->error("Build %s field not updated (key %s)", $build->uuid, $key);
+                Crafty::Log->error("Build %s field not updated", $uuid);
 
                 return $deferred->reject;
             }
 
-            $self->_broadcast('build', $build->to_hash);
+            #$self->_broadcast('build', { uuid => $uuid, %values });
 
-            $deferred->resolve($build);
+            $deferred->resolve;
+        }
+    );
+
+    return $deferred->promise;
+}
+
+sub update_multi {
+    my $self = shift;
+    my ($uuids, @set) = @_;
+
+    my $deferred = deferred;
+
+    my $sql = sql_update
+      table => 'builds',
+      set   => \@set,
+      where => [ uuid => $uuids ];
+
+    $self->dbh->exec(
+        $sql->to_sql,
+        $sql->to_bind,
+        sub {
+            my ($dbh, $rows, $rv) = @_;
+
+            $#_ or die "failure: $@";
+
+            foreach my $uuid (@$uuids) {
+                $self->_broadcast(
+                    'build',
+                    {
+                        uuid => $uuid,
+                        @set
+                    }
+                );
+            }
+
+            $deferred->resolve;
         }
     );
 
@@ -183,8 +226,9 @@ sub load {
 
 sub count {
     my $self = shift;
+    my (%params) = @_;
 
-    my $sql = sql_select from => 'builds', columns => [ \'COUNT(*)' ];
+    my $sql = sql_select from => 'builds', columns => [ \'COUNT(*)' ], %params;
 
     my $deferred = deferred;
 
@@ -223,12 +267,7 @@ sub find {
 
             $#_ or die "failure: $@";
 
-            $deferred->resolve(
-                [
-                    map { Crafty::Build->new(%{$_}) }
-                      @{ $sql->from_rows($rows) }
-                ]
-            );
+            $deferred->resolve([ map { Crafty::Build->new(%{$_}) } @{ $sql->from_rows($rows) } ]);
         }
     );
 
@@ -237,8 +276,9 @@ sub find {
 
 sub _broadcast {
     my $self = shift;
+    my ($ev, $data) = @_;
 
-    Crafty::EventBus->instance->broadcast(@_);
+    return Crafty::PubSub->instance->publish($ev, $data);
 }
 
 1;

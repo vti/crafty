@@ -3,3 +3,4 @@ perl5/
 db.db
 data/builds/
 data/config.yml
+tmp/

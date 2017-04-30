@@ -93,12 +93,12 @@ sub status_name {
     return {
         'N' => 'New',
         'I' => 'Preparing',
-        'L' => 'Preparing',
+        'L' => 'Locked',
         'P' => 'Running',
         'S' => 'Success',
         'E' => 'Error',
         'F' => 'Failure',
-        'C' => 'Canceling',
+        'C' => 'Canceled',
         'K' => 'Killed',
     }->{ $self->status };
 }

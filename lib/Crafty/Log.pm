@@ -16,6 +16,8 @@ sub init {
     return $class;
 }
 
+sub is_verbose { !!$VERBOSE }
+
 sub error {
     my $class = shift;
     my ($msg, @args) = @_;

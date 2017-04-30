@@ -25,10 +25,11 @@ use Crafty;
 use Crafty::Log;
 use Crafty::Config;
 use Crafty::EventBus;
+use Crafty::PubSub;
 
 my $opt_base   = 'data';
 my $opt_config = 'data/config.yml';
-my $opt_listen = '0.0.0.0:5000';
+my $opt_listen;
 my $opt_verbose;
 GetOptions(
     'config=s' => \$opt_config,
@@ -42,26 +43,28 @@ Crafty::Log->init(verbose => 1) if $opt_verbose;
 my $config = Crafty::Config->new(root => $root, base => $opt_base);
 $config->load($opt_config);
 
+$opt_listen //= $config->config->{listen} // '127.0.0.1:5000';
+$config->config->{listen} //= $opt_listen;
+
+Crafty::PubSub->instance->own->address($opt_listen);
+
 my $app = Crafty->new(config => $config, root => $root);
 
-my $w; $w = AE::signal HUP => sub {
+my $w;
+$w = AE::signal HUP => sub {
     warn "Exiting gracefully (waiting for everything to finish)...\n";
 
-    $app->stop(sub { sleep 2; undef $w; kill 'QUIT', $$; sleep 5; kill 'TERM', $$; });
+    sleep 2;
+    undef $w;
+
+    kill 'QUIT', $$;
+
+    sleep 5;
+
+    kill 'TERM', $$;
 };
 
 my $psgi = builder {
-    mount '/events' => builder {
-        return Plack::App::EventSource->new(
-            headers    => ['Access-Control-Allow-Credentials', 'true'],
-            handler_cb => sub {
-                my ($conn, $env) = @_;
-
-                Crafty::EventBus->instance->new_conn($conn, $env);
-            }
-        )->to_app;
-    };
-
     mount '/' => builder {
         enable_if { $_[0]->{REMOTE_ADDR} eq '127.0.0.1' }
         'Plack::Middleware::ReverseProxy';
@@ -71,6 +74,8 @@ my $psgi = builder {
           root => "$root/public";
 
         enable "HTTPExceptions", rethrow => 1;
+
+        #enable "AccessLog", format => "combined";
 
         return $app->to_psgi;
     };

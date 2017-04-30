@@ -31,6 +31,7 @@
         <nav class="navbar navbar-default">
             <div class="navbar-header">
                 <a class="navbar-brand" href="#">
+                    Crafty
                 </a>
             </div>
         </nav>
@@ -52,5 +53,10 @@
         <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
         <script src="/js/lib/ie10-viewport-bug-workaround.js"></script>
         <script data-main="/js/main" src="/js/lib/require.js"></script>
+        {{#verbose}}
+        <script>
+            require.config({verbose: true});
+        </script>
+        {{/verbose}}
     </body>
 </html>

@@ -55,6 +55,4 @@ sub tail {
     return $self;
 }
 
-sub DESTROY { "TAIL DESTROY" }
-
 1;

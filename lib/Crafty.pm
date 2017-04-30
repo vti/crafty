@@ -15,7 +15,10 @@ has 'db',
   default => sub {
     my $self = shift;
 
-    return Crafty::DB->new(db_file => $self->config->db_file);
+    return Crafty::DB->new(
+        config  => $self->config->config,
+        db_file => $self->config->db_file
+    );
   };
 has 'view',
   is      => 'ro',
@@ -42,21 +45,6 @@ sub BUILD {
     $self->pool->start;
 }
 
-sub stop {
-    my $self = shift;
-    my ($cb) = @_;
-
-    $self->pool->stop(
-        sub {
-            delete $self->{pool};
-
-            Crafty::Log->info("Stopping app");
-
-            $cb->();
-        }
-    );
-}
-
 sub build_routes {
     my $self = shift;
 
@@ -68,6 +56,9 @@ sub build_routes {
     $routes->add_route('/cancel/:build_id',   name => 'Cancel');
     $routes->add_route('/download/:build_id', name => 'Download');
     $routes->add_route('/restart/:build_id',  name => 'Restart');
+
+    $routes->add_route('/events', name => 'Events');
+    $routes->add_route('/_event', name => 'Event');
 
     $routes->add_route('/webhook/:provider/:project', name => 'Hook');
 
@@ -97,10 +88,10 @@ sub to_psgi {
                 pool   => $self->pool,
             );
 
-            return $action->run(%{$match->captures || {}});
+            return $action->run(%{ $match->captures || {} });
         }
         else {
-            return [404, [], ['Not Found']];
+            return [ 404, [], ['Not Found'] ];
         }
     };
 }

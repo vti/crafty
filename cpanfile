@@ -1,6 +1,6 @@
 requires 'AnyEvent';
 requires 'AnyEvent::Fork';
-requires 'AnyEvent::Fork::Pool';
+requires 'AnyEvent::HTTP';
 requires 'AnyEvent::DBI';
 requires 'EV';
 requires 'Promises';

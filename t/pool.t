@@ -10,7 +10,29 @@ use_ok 'Crafty::Pool';
 subtest 'build: builds successfully' => sub {
     my $build = TestSetup->create_build(project => 'my_app', status => 'I');
 
-    _run_pool(config => 'date');
+    my $config = _build_config('date');
+
+    my $pool = _build(config => $config);
+
+    my $cv = AnyEvent->condvar;
+
+    $cv->begin;
+    Crafty::PubSub->instance->own->subscribe(
+        '*' => sub {
+            my ($ev, $data) = @_;
+
+            if ($ev eq 'build' && $data->{status} eq 'S') {
+                $cv->end;
+            }
+
+            return;
+        }
+    );
+
+    $cv->begin;
+    $pool->peek->then(sub { $cv->end });
+
+    $cv->wait;
 
     $build = TestSetup->load_build($build->uuid);
 
@@ -20,7 +42,29 @@ subtest 'build: builds successfully' => sub {
 subtest 'build: builds failure' => sub {
     my $build = TestSetup->create_build(project => 'my_app', status => 'I');
 
-    _run_pool(config => 'date; exit 255');
+    my $config = _build_config('date; exit 255');
+
+    my $pool = _build(config => $config);
+
+    my $cv = AnyEvent->condvar;
+
+    $cv->begin;
+    Crafty::PubSub->instance->own->subscribe(
+        '*' => sub {
+            my ($ev, $data) = @_;
+
+            if ($ev eq 'build' && $data->{status} eq 'F') {
+                $cv->end;
+            }
+
+            return;
+        }
+    );
+
+    $cv->begin;
+    $pool->peek->then(sub { $cv->end });
+
+    $cv->wait;
 
     $build = TestSetup->load_build($build->uuid);
 
@@ -30,7 +74,29 @@ subtest 'build: builds failure' => sub {
 subtest 'build: builds killed' => sub {
     my $build = TestSetup->create_build(project => 'my_app', status => 'I');
 
-    _run_pool(config => 'exit 255');
+    my $config = _build_config('exit 255');
+
+    my $pool = _build(config => $config);
+
+    my $cv = AnyEvent->condvar;
+
+    $cv->begin;
+    Crafty::PubSub->instance->own->subscribe(
+        '*' => sub {
+            my ($ev, $data) = @_;
+
+            if ($ev eq 'build' && $data->{status} eq 'K') {
+                $cv->end;
+            }
+
+            return;
+        }
+    );
+
+    $cv->begin;
+    $pool->peek->then(sub { $cv->end });
+
+    $cv->wait;
 
     $build = TestSetup->load_build($build->uuid);
 
@@ -44,14 +110,10 @@ subtest 'cancel: removes unknown builds' => sub {
 
     my $pool = _build();
 
-    $pool->start;
-
-    $pool->cancel($build);
-
     $cv->begin;
-    $pool->stop(sub { $cv->end });
+    $pool->cancel($build)->then(sub { $cv->send });
 
-    $cv->recv;
+    $cv->wait;
 
     $build = TestSetup->load_build($build->uuid);
 
@@ -65,6 +127,8 @@ sub _build_config {
 
     return TestSetup->build_config(<<"EOF");
 ---
+pool:
+    mode: inproc
 projects:
     - id: my_app
       build:
@@ -105,5 +169,11 @@ sub _run_pool {
 }
 
 sub _build {
+    my (%params) = @_;
+
+    if (my $config = $params{config}) {
+        $config->config->{db_file} = $TestSetup::db_file->filename;
+    }
+
     return Crafty::Pool->new(db => TestSetup->build_db, config => {}, @_);
 }

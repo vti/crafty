@@ -97,6 +97,4 @@ sub tail {
     };
 }
 
-sub DESTROY { "ACTION TAIL DESTROY" }
-
 1;

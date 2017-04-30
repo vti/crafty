@@ -82,7 +82,7 @@ sub build_db {
         undef $dbh;
     }
 
-    $db ||= Crafty::DB->new(db_file => $db_file->filename);
+    $db ||= Crafty::DB->new(config => {}, db_file => $db_file->filename);
 
     return $db;
 }

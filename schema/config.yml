@@ -1,15 +1,19 @@
 ---
 type: map
 mapping:
+  listen:
+    type: str
   pool:
     type: map
     mapping:
       workers:
         type: int
-      max_builds:
-        type: int
-      max_queue:
-        type: int
+      mode:
+        enum:
+          - inproc
+          - fork
+          - detach
+        type: str
   projects:
     required: 1
     type: seq

@@ -18,9 +18,9 @@ sub run {
                 my ($build) = @_;
 
                 return deferred->reject($self->not_found)
-                  unless $build && $build->cancel;
+                  unless $build && $build->is_cancelable;
 
-                return $self->db->save($build);
+                return deferred->resolve($build);
             },
             sub {
                 return deferred->reject($self->not_found);
@@ -29,7 +29,7 @@ sub run {
             sub {
                 my ($build) = @_;
 
-                $self->pool->peek;
+                $self->pool->cancel($build);
 
                 return $self->redirect("/builds/$uuid", $respond);
             },

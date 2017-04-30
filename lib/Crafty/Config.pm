@@ -48,6 +48,8 @@ sub load {
     $self->{config}->{builds_dir} =
       $self->resolve_path($self->{config}->{builds_dir}, 'builds');
 
+    $self->{config}->{pool}->{mode} //= 'fork';
+
     return $self->{config};
 }
 
