@@ -1,0 +1,11 @@
+---
+pool:
+    workers: 2
+    max_builds: 10
+    max_queue: 2
+projects:
+    - id: app
+      webhooks:
+          - provider: rest
+      build:
+          - sleep 10
