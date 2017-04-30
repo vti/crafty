@@ -13,5 +13,7 @@ CREATE TABLE builds (
 
  created text NOT NULL DEFAULT '',
  started text NOT NULL DEFAULT '',
- finished text NOT NULL DEFAULT ''
+ finished text NOT NULL DEFAULT '',
+
+ version integer NOT NULL DEFAULT 1
 );

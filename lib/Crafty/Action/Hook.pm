@@ -33,7 +33,7 @@ sub run {
 
         $self->db->save($build)->then(
             sub {
-                $self->pool->build($build);
+                $self->pool->peek;
 
                 $respond->([200, [], [$build->uuid]]);
             }

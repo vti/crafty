@@ -29,7 +29,7 @@ sub run {
             sub {
                 my ($build) = @_;
 
-                $self->pool->cancel($build);
+                $self->pool->peek;
 
                 return $self->redirect("/builds/$uuid", $respond);
             },

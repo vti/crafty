@@ -87,6 +87,17 @@ sub build_db {
     return $db;
 }
 
+sub cleanup_db {
+    my $class = shift;
+
+    if ($db_file) {
+        my $dbh = DBI->connect('dbi:SQLite:dbname=' . $db_file->filename);
+        $dbh->do('DELETE FROM builds');
+        $dbh->disconnect;
+        undef $dbh;
+    }
+}
+
 sub build_view {
     my $class = shift;
 

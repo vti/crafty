@@ -3,9 +3,12 @@ use Moo;
 
 has 'config', is => 'ro', required => 1;
 has 'db',     is => 'ro', required => 1;
+has 'on_event', is => 'ro';
+
 has '_on_destroy', is => 'rw';
 has '_pool',       is => 'rw';
 
+use Promises qw(deferred);
 use AnyEvent::Fork;
 use AnyEvent::Fork::Pool;
 use Crafty::Log;
@@ -46,81 +49,146 @@ sub start {
 
     Crafty::Log->info('Pool started with %s worker(s)', $workers);
 
-    #$self->_process_prepared;
+    $self->{peek} = AnyEvent->timer(
+        interval => 10,
+        cb       => sub { $self->peek }
+    );
 
     return $self;
+}
+
+sub queue {
+    return @Crafty::Fork::Pool::queue;
+}
+
+sub peek {
+    my $self = shift;
+
+    return if $self->{peeking};
+
+    my $max_queue = $self->config->{config}->{pool}->{max_queue} // 10;
+
+    my $slots = $max_queue - $self->queue;
+
+    if ($slots && $slots > 0) {
+        return if $self->{peeking};
+
+        $self->{peeking}++;
+
+        $self->db->find(
+            where    => [ status  => 'I' ],
+            order_by => [ created => 'ASC' ],
+            limit    => 1
+          )->then(
+            sub {
+                my ($builds) = @_;
+
+                return deferred->reject unless @$builds;
+
+                return $self->db->lock($builds->[0]);
+            }
+          )->then(
+            sub {
+                my ($build, $locked) = @_;
+
+                if ($locked) {
+                    $self->_build($build);
+                }
+
+                delete $self->{peeking};
+            }
+          )->catch(
+            sub {
+                delete $self->{peeking};
+            }
+          );
+    }
 }
 
 sub stop {
     my $self = shift;
     my ($done) = @_;
 
-    if ($self->_pool) {
-        if (my @queue = @Crafty::Fork::Pool::queue) {
-            Crafty::Log->info('Cleaning up queue (%s)', scalar(@queue));
+    return unless $self->_pool;
 
-            @Crafty::Fork::Pool::queue = ();
-        }
+    if (my @queue = $self->queue) {
+        Crafty::Log->info('Cleaning up queue (%s)', scalar(@queue));
 
-        my $workers = $self->{status};
+        @Crafty::Fork::Pool::queue = ();
+    }
 
-        my @waitlist;
-        if (%$workers) {
-            foreach my $worker_pid (keys %$workers) {
-                my $uuid = $workers->{$worker_pid}->{uuid};
-                my $pid  = $workers->{$worker_pid}->{pid};
+    my $workers = $self->{status};
 
-                if ($pid && kill 0, $pid) {
-                    push @waitlist, { uuid => $uuid, pid => $pid };
-                }
+    my @waitlist;
+    if (%$workers) {
+        foreach my $worker_pid (keys %$workers) {
+            my $uuid = $workers->{$worker_pid}->{uuid};
+            my $pid  = $workers->{$worker_pid}->{pid};
+
+            if ($pid && kill 0, $pid) {
+                push @waitlist, { uuid => $uuid, pid => $pid };
             }
         }
+    }
 
-        if (@waitlist) {
-            Crafty::Log->info('Waiting for workers to finish (%s)',
-                scalar(@waitlist));
+    if (@waitlist) {
+        Crafty::Log->info('Waiting for workers to finish (%s)',
+            scalar(@waitlist));
 
-            $self->{t} = AnyEvent->timer(
-                interval => 2,
-                cb       => sub {
-                    foreach my $wait (@waitlist) {
-                        if (kill 0, $wait->{pid}) {
-                            Crafty::Log->info("Waiting for $wait->{pid}...");
-                            return;
-                        }
+        $self->{t} = AnyEvent->timer(
+            interval => 2,
+            cb       => sub {
+                foreach my $wait (@waitlist) {
+                    if (kill 0, $wait->{pid}) {
+                        Crafty::Log->info("Waiting for $wait->{pid}...");
+                        return;
                     }
-
-                    delete $self->{t};
-
-                    $self->{cv}->recv if $self->{cv};
-
-                    $self->_on_destroy(sub { $done->() if $done });
-                    $self->_pool(undef);
                 }
-            );
-        }
-        else {
-            $self->{cv}->recv if $self->{cv};
 
-            $self->_on_destroy(sub { $done->() if $done });
-            $self->_pool(undef);
-        }
+                delete $self->{t};
+
+                $self->_stop($done);
+            }
+        );
+    }
+    else {
+        $self->_stop($done);
     }
 
     return $self;
 }
 
-sub build {
+sub _stop {
     my $self = shift;
-    my ($build, $done) = @_;
+    my ($done) = @_;
+
+    $self->{cv}->recv if $self->{cv};
+
+    $self->_on_destroy(sub { $done->() if $done });
+    $self->_pool(undef);
+}
+
+sub _build {
+    my $self = shift;
+    my ($build) = @_;
 
     my $project_config = $self->config->project($build->project);
 
     Crafty::Log->info('Build %s scheduled', $build->uuid);
 
-    $self->_pool->(
-        $self->config->{config}->{pool}, $build->to_hash,
-        $project_config->{build}, $done || sub { }
+    $self->{cv} //= AnyEvent->condvar;
+
+    $self->{cv}->begin;
+
+    $build->start;
+
+    $self->_sync_build($build)->then(
+        sub {
+            $self->_pool->(
+                $self->config->{config}->{pool}, $build->to_hash,
+                $project_config->{build}, sub { }
+            );
+        }
     );
 }
 
@@ -196,22 +264,6 @@ sub _kill_build {
     );
 }
 
-sub _process_prepared {
-    my $self = shift;
-
-    $self->db->find(
-        where    => [ status  => 'I' ],
-        order_by => [ started => 'ASC' ],
-      )->then(
-        sub {
-            my ($builds) = @_;
-
-            $self->build($_) for @$builds;
-        }
-      );
-
-}
-
 sub _handle_worker_event {
     my $self = shift;
     my ($worker_id, $ev, $uuid, @args) = @_;
@@ -222,22 +274,12 @@ sub _handle_worker_event {
 
     $self->{cv} //= AnyEvent->condvar;
 
-    $self->{cv}->begin;
-
     if ($ev eq 'build.started') {
         Crafty::Log->info('Build %s started', $uuid);
 
-        $self->db->load($uuid)->then(
-            sub {
-                my ($build) = @_;
-
-                $build->start;
-
-                $self->_sync_build($build);
-            }
-        );
-
         $worker->{status} = 'started';
+
+        $self->on_event->($ev, $uuid, @args) if $self->on_event;
     }
     elsif ($ev eq 'build.pid') {
         my $pid = $args[0];
@@ -248,13 +290,29 @@ sub _handle_worker_event {
 
         $worker->{pid} = $pid;
 
+        $self->{cv}->begin;
+
         $self->db->load($uuid)->then(
             sub {
                 my ($build) = @_;
 
                 $build->pid($pid);
 
-                $self->_sync_build($build);
+                $self->db->update_field($build, pid => $pid)->then(
+                    sub {
+                        $self->{cv}->end;
+
+                        $self->on_event->($ev, $uuid, @args) if $self->on_event;
+                    }
+                  )->catch(
+                    sub {
+                        Crafty::Log->error("Build %s field sync failed", $build->uuid);
+
+                        $self->{cv}->end;
+
+                        $self->on_event->($ev, $uuid, @args) if $self->on_event;
+                    }
+                  );
             }
         );
     }
@@ -266,13 +324,20 @@ sub _handle_worker_event {
         Crafty::Log->info('Build %s finished with status %s',
             $uuid, $final_status);
 
+        $self->{cv}->begin;
+
         $self->db->load($uuid)->then(
             sub {
                 my ($build) = @_;
 
                 $build->finish($final_status);
 
-                $self->_sync_build($build);
+                $self->_sync_build(
+                    $build,
+                    sub {
+                        $self->on_event->($ev, $uuid, @args) if $self->on_event;
+                    }
+                );
             }
         );
 
@@ -285,25 +350,52 @@ sub _handle_worker_event {
 
         Crafty::Log->info('Build %s errored', $uuid);
 
+        $self->{cv}->begin;
+
         $self->db->load($uuid)->then(
             sub {
                 my ($build) = @_;
 
                 $build->finish('E');
 
-                $self->_sync_build($build);
+                $self->_sync_build(
+                    $build,
+                    sub {
+                        $self->on_event->($ev, $uuid, @args) if $self->on_event;
+                    }
+                );
             }
         );
 
         delete $self->{status}->{$worker_id}->{$uuid};
     }
+
+    if ($ev eq 'build.done' || $ev eq 'build.error') {
+        $self->peek;
+    }
+
+    return $self;
 }
 
 sub _sync_build {
     my $self = shift;
-    my ($build) = @_;
+    my ($build, $done) = @_;
 
-    $self->db->save($build)->then(sub { $self->{cv}->end });
+    $self->db->save($build)->then(
+        sub {
+            $self->{cv}->end;
+
+            $done->() if $done;
+        }
+      )->catch(
+        sub {
+            Crafty::Log->error("Build %s sync failed", $build->uuid);
+
+            $self->{cv}->end;
+
+            $done->() if $done;
+        }
+      );
 }
 
 1;

@@ -32,7 +32,7 @@ sub run {
             sub {
                 my ($build) = @_;
 
-                $self->pool->build($build);
+                $self->pool->peek;
 
                 return $self->redirect(sprintf("/builds/%s", $build->uuid),
                     $respond);

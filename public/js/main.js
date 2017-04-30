@@ -85,6 +85,8 @@
                     var rendered = mustache.render(template.html(), data);
 
                     $(el).prepend(rendered);
+
+                    updateTimeFormatting();
                 }
             });
         });

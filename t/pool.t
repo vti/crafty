@@ -10,21 +10,7 @@ use_ok 'Crafty::Pool';
 subtest 'build: builds successfully' => sub {
     my $build = TestSetup->create_build(project => 'my_app', status => 'I');
 
-    my $cv = AnyEvent->condvar;
-
-    my $pool = _build(config => _build_config('date'));
-
-    $cv->begin;
-
-    $pool->start;
-    $pool->build($build, sub { $cv->end });
-
-    $cv->recv;
-
-    $cv->begin;
-    $pool->stop(sub { $cv->end });
-
-    $cv->recv;
+    _run_pool(config => 'date');
 
     $build = TestSetup->load_build($build->uuid);
 
@@ -34,22 +20,7 @@ subtest 'build: builds successfully' => sub {
 subtest 'build: builds failure' => sub {
     my $build = TestSetup->create_build(project => 'my_app', status => 'I');
 
-    my $cv = AnyEvent->condvar;
-
-    my $pool = _build(config => _build_config('date; exit 255'));
-
-    $cv->begin;
-
-    $pool->start;
-    $pool->build($build, sub { $cv->end });
-
-    $cv->recv;
-
-    $cv->begin;
-
-    $pool->stop(sub { $cv->end });
-
-    $cv->recv;
+    _run_pool(config => 'date; exit 255');
 
     $build = TestSetup->load_build($build->uuid);
 
@@ -59,21 +30,7 @@ subtest 'build: builds failure' => sub {
 subtest 'build: builds killed' => sub {
     my $build = TestSetup->create_build(project => 'my_app', status => 'I');
 
-    my $cv = AnyEvent->condvar;
-
-    my $pool = _build(config => _build_config('exit 255'));
-
-    $cv->begin;
-
-    $pool->start;
-    $pool->build($build, sub { $cv->end });
-
-    $cv->recv;
-
-    $cv->begin;
-    $pool->stop(sub { $cv->end });
-
-    $cv->recv;
+    _run_pool(config => 'exit 255');
 
     $build = TestSetup->load_build($build->uuid);
 
@@ -113,6 +70,38 @@ projects:
       build:
         - $cmd
 EOF
+}
+
+sub _run_pool {
+    my (%params) = @_;
+
+    my $cv = AnyEvent->condvar;
+
+    $cv->begin;
+
+    my $pool = _build(
+        config   => _build_config($params{config}),
+        on_event => sub {
+            my ($ev, $uuid) = @_;
+
+            if ($ev eq 'build.done') {
+                $cv->end;
+            }
+            if ($ev eq 'build.error') {
+                $cv->end;
+            }
+        }
+    );
+
+    $pool->start;
+    $pool->peek;
+
+    $cv->recv;
+
+    $cv->begin;
+    $pool->stop(sub { $cv->end });
+
+    $cv->recv;
 }
 
 sub _build {

@@ -18,7 +18,8 @@ has 'branch',  is => 'ro', required => 1, predicate => 1;
 has 'author',  is => 'ro', required => 1, predicate => 1;
 has 'message', is => 'ro', required => 1, predicate => 1;
 
-has 'pid', is => 'rw', predicate => 1;
+has 'pid',     is => 'rw', predicate => 1;
+has 'version', is => 'rw', predicate => 1;
 
 sub columns {
     return (
@@ -37,6 +38,7 @@ sub columns {
         'message',
 
         'pid',
+        'version',
     );
 }
 
@@ -76,12 +78,13 @@ sub status_display {
         'N' => 'default',
         'I' => 'default',
         'P' => 'default',
+        'L' => 'default',
         'S' => 'success',
         'E' => 'danger',
         'F' => 'danger',
         'C' => 'danger',
         'K' => 'danger',
-    }->{$self->status};
+    }->{ $self->status };
 }
 
 sub status_name {
@@ -90,13 +93,14 @@ sub status_name {
     return {
         'N' => 'New',
         'I' => 'Preparing',
+        'L' => 'Preparing',
         'P' => 'Running',
         'S' => 'Success',
         'E' => 'Error',
         'F' => 'Failure',
         'C' => 'Canceling',
         'K' => 'Killed',
-    }->{$self->status};
+    }->{ $self->status };
 }
 
 sub is_cancelable {
@@ -139,7 +143,7 @@ sub init {
 sub start {
     my $self = shift;
 
-    unless ($self->status eq 'I') {
+    unless ($self->status eq 'I' || $self->status eq 'L') {
         Crafty::Log->error('Build %s is in invalid status for start: %s',
             $self->uuid, $self->status);
         return;
@@ -187,7 +191,7 @@ sub cancel {
 sub to_store {
     my $self = shift;
 
-    my $store = {uuid => $self->uuid};
+    my $store = { uuid => $self->uuid };
 
     foreach my $column ($self->columns) {
         my $predicate = 'has_' . $column;
@@ -203,7 +207,7 @@ sub to_hash {
     my $self = shift;
 
     return {
-        %{$self->to_store},
+        %{ $self->to_store },
 
         status_name    => $self->status_name,
         status_display => $self->status_display,

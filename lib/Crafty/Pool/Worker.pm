@@ -24,26 +24,7 @@ sub run {
     );
 
     eval {
-        $runner->run(
-            cmds   => $cmds,
-            on_pid => sub {
-                my ($pid) = @_;
-
-                AnyEvent::Fork::RPC::event($$, 'build.pid', $uuid, $pid);
-            },
-            on_eof => sub {
-                my ($exit_code) = @_;
-
-                AnyEvent::Fork::RPC::event($$, 'build.done', $uuid, $exit_code);
-
-                $done->() if $done;
-            },
-            on_error => sub {
-                AnyEvent::Fork::RPC::event($$, 'build.error', $uuid);
-
-                $done->() if $done;
-            }
-        );
+        _run($runner, $uuid, $cmds, $done);
 
         1;
     } or do {
@@ -61,6 +42,31 @@ sub run {
     }
 
     return;
+}
+
+sub _run {
+    my ($runner, $uuid, $cmds, $done) = @_;
+
+    $runner->run(
+        cmds   => $cmds,
+        on_pid => sub {
+            my ($pid) = @_;
+
+            AnyEvent::Fork::RPC::event($$, 'build.pid', $uuid, $pid);
+        },
+        on_eof => sub {
+            my ($exit_code) = @_;
+
+            AnyEvent::Fork::RPC::event($$, 'build.done', $uuid, $exit_code);
+
+            $done->() if $done;
+        },
+        on_error => sub {
+            AnyEvent::Fork::RPC::event($$, 'build.error', $uuid);
+
+            $done->() if $done;
+        }
+    );
 }
 
 1;

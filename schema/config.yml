@@ -8,6 +8,8 @@ mapping:
         type: int
       max_builds:
         type: int
+      max_queue:
+        type: int
   projects:
     required: 1
     type: seq
