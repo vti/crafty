@@ -1,11 +1,10 @@
 ---
 pool:
-    workers: 2
-    max_builds: 10
-    max_queue: 2
+    workers: 4
+    mode: detach
 projects:
-    - id: app
+    - id: myapp
       webhooks:
           - provider: rest
       build:
-          - sleep 10
+          - sleep 5
