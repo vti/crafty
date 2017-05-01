@@ -2,8 +2,6 @@
 
 Crafty is a dead simple but useful for personal projects CI server.
 
-## Screencasts
-
 ![Screencast1](/images/screencast1.gif)
 
 ## Features
