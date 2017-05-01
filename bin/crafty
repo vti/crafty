@@ -43,7 +43,7 @@ Crafty::Log->init(verbose => 1) if $opt_verbose;
 my $config = Crafty::Config->new(root => $root, base => $opt_base);
 $config->load($opt_config);
 
-$opt_listen //= $config->config->{listen} // '127.0.0.1:5000';
+$opt_listen //= $config->config->{listen} // '0.0.0.0:5000';
 $config->config->{listen} //= $opt_listen;
 
 Crafty::PubSub->instance->own->address($opt_listen);

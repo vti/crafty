@@ -40,8 +40,6 @@ has 'pool',
 sub BUILD {
     my $self = shift;
 
-    Crafty::Log->info("Starting app");
-
     $self->pool->start;
 }
 
