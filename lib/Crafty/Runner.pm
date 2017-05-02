@@ -6,6 +6,7 @@ use warnings;
 use File::Path qw(make_path);
 use File::Basename qw(dirname);
 use File::Temp qw(tempfile);
+use JSON ();
 use IO::Handle;
 use AnyEvent::Fork;
 use AnyEvent::Handle;
@@ -19,6 +20,7 @@ sub new {
 
     $self->{stream}    = $params{stream};
     $self->{build_dir} = $params{build_dir};
+    $self->{env}       = $params{env} // {};
 
     return $self;
 }
@@ -44,12 +46,21 @@ sub run {
     my $fork = AnyEvent::Fork->new;
     $fork->eval('
                sub run {
-                  my ($fh, $ex, $build_dir, @cmds) = @_;
+                  my ($fh, $ex, $build_dir, $env, @cmds) = @_;
 
                   open STDOUT, ">&", $fh or die;
                   open STDERR, ">&", $fh or die;
 
                   chdir $build_dir;
+
+                  eval {
+                      require JSON;
+                      $env = JSON::decode_json($env);
+
+                      foreach my $key (keys %$env) {
+                          $ENV{$key} = $env->{$key};
+                      }
+                  };
 
                   print "PID=$$\n\n";
                   print "$_=$ENV{$_}\n" for sort keys %ENV;
@@ -86,6 +97,7 @@ sub run {
             ');
     $fork->send_fh($tmp);
     $fork->send_arg($build_dir);
+    $fork->send_arg(JSON::encode_json($self->{env}));
     $fork->send_arg(@$cmds);
     $fork->run(
         run => sub {

@@ -55,9 +55,8 @@ sub duration {
     my $duration = 0;
 
     eval {
-        my $finished_moment =
-          Time::Moment->from_string($finished, lenient => 1);
-        my $started_moment = Time::Moment->from_string($started, lenient => 1);
+        my $finished_moment = Time::Moment->from_string($finished, lenient => 1);
+        my $started_moment  = Time::Moment->from_string($started,  lenient => 1);
 
         $duration =
           ($finished_moment->epoch +
@@ -129,8 +128,7 @@ sub init {
     my $self = shift;
 
     unless ($self->status eq 'N') {
-        Crafty::Log->error('Build %s is in invalid status for init: %s',
-            $self->uuid, $self->status);
+        Crafty::Log->error('Build %s is in invalid status for init: %s', $self->uuid, $self->status);
         return;
     }
 
@@ -144,8 +142,7 @@ sub start {
     my $self = shift;
 
     unless ($self->status eq 'I' || $self->status eq 'L') {
-        Crafty::Log->error('Build %s is in invalid status for start: %s',
-            $self->uuid, $self->status);
+        Crafty::Log->error('Build %s is in invalid status for start: %s', $self->uuid, $self->status);
         return;
     }
 
@@ -160,8 +157,7 @@ sub restart {
     my $self = shift;
 
     unless ($self->is_restartable) {
-        Crafty::Log->error('Build %s is in invalid status for restart: %s',
-            $self->uuid, $self->status);
+        Crafty::Log->error('Build %s is in invalid status for restart: %s', $self->uuid, $self->status);
         return;
     }
 
@@ -177,8 +173,7 @@ sub cancel {
     my $self = shift;
 
     unless ($self->is_cancelable) {
-        Crafty::Log->error('Build %s is in invalid status for cancel: %s',
-            $self->uuid, $self->status);
+        Crafty::Log->error('Build %s is in invalid status for cancel: %s', $self->uuid, $self->status);
         return;
     }
 
@@ -218,6 +213,14 @@ sub to_hash {
 
         duration => $self->duration,
     };
+}
+
+sub to_env {
+    my $self = shift;
+
+    my $hash = $self->to_hash;
+
+    return { map { "CRAFTY_BUILD_" . uc($_) => $hash->{$_} } keys %$hash };
 }
 
 sub _now {

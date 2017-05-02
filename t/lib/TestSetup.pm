@@ -40,8 +40,6 @@ sub build_config {
 ---
 projects:
     - id: my_project
-      webhooks:
-        - provider: rest
       build:
         - date
 EOF

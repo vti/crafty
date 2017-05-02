@@ -18,6 +18,8 @@ requires 'Input::Validator';
 requires 'YAML::Tiny';
 requires 'Kwalify';
 
+requires 'CGI::Compile';
+requires 'CGI::Emulate::PSGI';
 requires 'Plack';
 requires 'Plack::App::EventSource';
 requires 'Plack::Middleware::ReverseProxy';

@@ -64,7 +64,7 @@ sub build_routes {
     $routes->add_route('/api/events',               method => 'GET',  name => 'API::WatchEvents');
     $routes->add_route('/api/events',               method => 'POST', name => 'API::CreateEvent');
 
-    $routes->add_route('/webhook/:provider/:project', name => 'Hook');
+    $routes->add_route('/webhook/:provider/:project', name => 'Webhook');
 
     return $routes;
 }

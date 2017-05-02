@@ -10,8 +10,7 @@ use_ok 'Crafty::Build';
 subtest 'uuid: generates when not passed' => sub {
     my $build = _build();
 
-    like $build->uuid,
-      qr/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
+    like $build->uuid, qr/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
     ok $build->is_new;
 };
 
@@ -120,8 +119,7 @@ subtest 'restart: restarts' => sub {
 
     ok !$build->restart;
 
-    $build =
-      _build(status => 'E', started => '2017-01-02', finished => '2017-01-02');
+    $build = _build(status => 'E', started => '2017-01-02', finished => '2017-01-02');
 
     ok $build->restart;
     is $build->started,  '';
@@ -183,6 +181,22 @@ subtest 'to_hash: serializes' => sub {
 
         pid => '123',
     };
+};
+
+subtest 'to_env: serializes' => sub {
+    my $build = _build(
+        status => 'N',
+
+        project => 'my_project',
+    );
+
+    cmp_deeply $build->to_env,
+      superhashof(
+        {
+            CRAFTY_BUILD_PROJECT => 'my_project',
+            CRAFTY_BUILD_STATUS  => 'N',
+        }
+      );
 };
 
 done_testing;

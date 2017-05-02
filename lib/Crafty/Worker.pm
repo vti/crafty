@@ -98,11 +98,6 @@ sub _run {
 
     my $builds_dir = $self->config->{builds_dir};
 
-    my $runner = Crafty::Runner->new(
-        stream    => $builds_dir . '/' . $uuid . '.log',
-        build_dir => $builds_dir . '/' . $uuid
-    );
-
     $self->db->load($uuid)->then(
         sub {
             my ($build) = @_;
@@ -114,6 +109,12 @@ sub _run {
       )->then(
         sub {
             my ($build) = @_;
+
+            my $runner = Crafty::Runner->new(
+                stream    => $builds_dir . '/' . $uuid . '.log',
+                build_dir => $builds_dir . '/' . $uuid,
+                env       => $build->to_env
+            );
 
             $runner->run(
                 cmds   => $project_config->{build},
@@ -131,7 +132,7 @@ sub _run {
 
                     $self->db->save($build)->then(
                         sub {
-                            $cv->send;
+                            $cv->send($build);
                         }
                     );
                 },
@@ -140,7 +141,7 @@ sub _run {
 
                     $self->db->save($build)->then(
                         sub {
-                            $cv->send;
+                            $cv->send($build);
                         }
                     );
                 }
@@ -152,7 +153,33 @@ sub _run {
         }
       );
 
-    $cv->wait;
+    my ($build) = $cv->recv;
+
+    if ($build) {
+        $cv = AnyEvent->condvar;
+
+        if ($project_config->{post}) {
+            my $runner = Crafty::Runner->new(
+                stream    => $builds_dir . '/' . $uuid . '.log',
+                build_dir => $builds_dir . '/' . $uuid,
+                env       => $build->to_env
+            );
+
+            $runner->run(
+                cmds   => $project_config->{post},
+                on_pid => sub {
+                },
+                on_eof => sub {
+                    $cv->send;
+                },
+                on_error => sub {
+                    $cv->send;
+                }
+            );
+        }
+
+        $cv->wait;
+    }
 }
 
 1;

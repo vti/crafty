@@ -26,9 +26,17 @@ mapping:
           sequence:
           - type: map
             mapping:
-              provider:
+              id:
                 type: str
+                required: 1
+              cgi:
+                type: str
+                required: 1
         build:
+          type: seq
+          sequence:
+          - type: str
+        post:
           type: seq
           sequence:
           - type: str

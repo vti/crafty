@@ -11,7 +11,7 @@ Crafty is a dead simple but useful for personal projects CI server.
 - [x] realtime updates
 - [x] realtime log tails
 - [x] REST API
-- [ ] webhook integration with GitHub, GitLab and BitBucket
+- [x] integrations with GitHub, GitLab and BitBucket
 
 ## Configuration (YAML)
 
@@ -70,6 +70,48 @@ You have to have *Perl* :camel: and *SQLite3* installed.
     $ bin/bootstrap
     $ bin/migrate
     $ bin/crafty
+
+## Integrations
+
+Integrations are possible on both the incoming webhook and outgoing posthook. Examples can be found in
+[examples](https://github.com/vti/crafty/blob/master/examples) directory.
+
+### Example GitHub Integration
+
+We are going to integrate incoming webhooks and commit status updates.
+
+1. Generating personal token
+
+Navigate to <https://github.com/settings/tokens> and create a personal token with `repo:status` permission.
+
+2. Configuring Crafty
+
+```yaml
+---
+projects:
+    - id: test
+      webhooks:
+          - id: github
+            cgi: github-webhook.sh
+      build:
+          - git clone http://github.com/vti/test
+      post:
+          - github-create-status.sh
+```
+
+Adjust `github-create-status.sh` putting your token inside.
+
+3. Creating webhook
+
+Create the webook on GitHub with the following url pattern:
+
+    http://crafty.address/webhook/:webhook_id/:project_id
+
+In our case:
+
+    http://crafty.address/webhook/github/test
+
+4. Push to your repository and check the crafty logs.
 
 ## REST API
 
