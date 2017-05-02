@@ -125,8 +125,8 @@ sub mock_pool {
 
     my $mock = Test::MonkeyMock->new;
 
-    $mock->mock(build => sub { });
     $mock->mock(start => sub { });
+    $mock->mock(peek  => sub { });
 
     return $mock;
 }
@@ -145,8 +145,7 @@ sub create_build {
 
     my $cv = AnyEvent->condvar;
 
-    TestSetup->build_db->save($build)
-      ->done(sub { $cv->send(@_) }, sub { $cv->send });
+    TestSetup->build_db->save($build)->done(sub { $cv->send(@_) }, sub { $cv->send });
 
     ($build) = $cv->recv;
 
@@ -159,8 +158,7 @@ sub load_build {
 
     my $cv = AnyEvent->condvar;
 
-    TestSetup->build_db->load($uuid)
-      ->done(sub { $cv->send(@_) }, sub { $cv->send });
+    TestSetup->build_db->load($uuid)->done(sub { $cv->send(@_) }, sub { $cv->send });
 
     my ($build) = $cv->recv;
 

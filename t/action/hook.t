@@ -38,9 +38,9 @@ subtest 'creates build' => sub {
         }
     );
 
-    my $cb = $action->run(provider => 'rest', project => 'my_project');
-
     my $cv = AnyEvent->condvar;
+
+    my $cb = $action->run(provider => 'rest', project => 'my_project');
 
     $cb->(sub { $cv->send(@_) });
 
