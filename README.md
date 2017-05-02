@@ -65,11 +65,21 @@ From [Docker Hub](https://hub.docker.com/r/vtivti/crafty/).
 
 You have to have *Perl* :camel: and *SQLite3* installed.
 
+    Clone
     $ git clone https://github.com/vti/crafty
     $ cd crafty
+
+    Bootstrap
     $ bin/bootstrap
+
+    Run migrations (if any)
     $ bin/migrate
+
+## Starting
+
     $ bin/crafty
+    $ bin/crafty --listen :8888
+    $ bin/crafty --config data/config.yml
 
 ## Integrations
 
@@ -99,11 +109,11 @@ projects:
           - github-create-status.sh
 ```
 
-Adjust `github-create-status.sh` putting your token inside.
+Adjust `github-create-status.sh` by putting your token inside.
 
 3. Creating webhook
 
-Create the webook on GitHub with the following url pattern:
+Create the webhook on GitHub with the following url pattern:
 
     http://crafty.address/webhook/:webhook_id/:project_id
 
