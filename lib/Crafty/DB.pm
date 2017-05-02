@@ -46,7 +46,7 @@ sub save {
                         $build->version(1);
                         $build->not_new;
 
-                        return $self->_broadcast('build.new', $build->to_hash)->then(
+                        return $self->_broadcast('build.create', $build->to_hash)->then(
                             sub {
                                 $deferred->resolve($build);
                             }
@@ -78,7 +78,7 @@ sub save {
 
                 $build->version($build->version + 1);
 
-                $self->_broadcast('build', $build->to_hash)->then(
+                $self->_broadcast('build.update', $build->to_hash)->then(
                     sub {
                         return $deferred->resolve($build);
                     }
@@ -147,7 +147,7 @@ sub update_multi {
 
             foreach my $uuid (@$uuids) {
                 $self->_broadcast(
-                    'build',
+                    'build.update',
                     {
                         uuid => $uuid,
                         @set

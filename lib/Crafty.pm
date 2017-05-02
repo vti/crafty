@@ -48,15 +48,21 @@ sub build_routes {
 
     my $routes = Routes::Tiny->new;
 
-    $routes->add_route('/',                   name => 'Index');
-    $routes->add_route('/builds/:build_id',   name => 'Build');
-    $routes->add_route('/tail/:build_id',     name => 'Tail');
-    $routes->add_route('/cancel/:build_id',   name => 'Cancel');
-    $routes->add_route('/download/:build_id', name => 'Download');
-    $routes->add_route('/restart/:build_id',  name => 'Restart');
+    $routes->add_route('/',               method => 'GET',  name => 'Index');
+    $routes->add_route('/builds/:uuid',   method => 'GET',  name => 'Build');
+    $routes->add_route('/cancel/:uuid',   method => 'POST', name => 'Cancel');
+    $routes->add_route('/download/:uuid', method => 'GET',  name => 'Download');
+    $routes->add_route('/restart/:uuid',  method => 'POST', name => 'Restart');
 
-    $routes->add_route('/events', name => 'Events');
-    $routes->add_route('/_event', name => 'Event');
+    $routes->add_route('/api/builds',               method => 'POST', name => 'API::CreateBuild');
+    $routes->add_route('/api/builds',               method => 'GET',  name => 'API::ListBuilds');
+    $routes->add_route('/api/builds/:uuid',         method => 'GET',  name => 'API::GetBuild');
+    $routes->add_route('/api/builds/:uuid/cancel',  method => 'POST', name => 'API::CancelBuild');
+    $routes->add_route('/api/builds/:uuid/restart', method => 'POST', name => 'API::RestartBuild');
+    $routes->add_route('/api/builds/:uuid/tail',    method => 'GET',  name => 'API::BuildTail');
+    $routes->add_route('/api/builds/:uuid/log',     method => 'GET',  name => 'API::BuildLog');
+    $routes->add_route('/api/events',               method => 'GET',  name => 'API::WatchEvents');
+    $routes->add_route('/api/events',               method => 'POST', name => 'API::CreateEvent');
 
     $routes->add_route('/webhook/:provider/:project', name => 'Hook');
 
@@ -74,7 +80,7 @@ sub to_psgi {
 
         my $path_info = $env->{PATH_INFO};
 
-        my $match = $routes->match($path_info);
+        my $match = $routes->match($path_info, method => $env->{REQUEST_METHOD});
 
         if ($match) {
             my $action = $self->_build_action(

@@ -83,7 +83,7 @@ sub publish {
     elsif ($self->_host && $self->_port) {
         my $deferred = deferred;
 
-        my $url = sprintf 'http://%s:%s/_event', $self->_host, $self->_port;
+        my $url = sprintf 'http://%s:%s/api/events', $self->_host, $self->_port;
 
         my $body = JSON::encode_json([ $ev, $data ]);
 

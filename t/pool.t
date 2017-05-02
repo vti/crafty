@@ -21,7 +21,7 @@ subtest 'build: builds successfully' => sub {
         '*' => sub {
             my ($ev, $data) = @_;
 
-            if ($ev eq 'build' && $data->{status} eq 'S') {
+            if ($ev eq 'build.update' && $data->{status} eq 'S') {
                 $cv->end;
             }
 
@@ -53,7 +53,7 @@ subtest 'build: builds failure' => sub {
         '*' => sub {
             my ($ev, $data) = @_;
 
-            if ($ev eq 'build' && $data->{status} eq 'F') {
+            if ($ev eq 'build.update' && $data->{status} eq 'F') {
                 $cv->end;
             }
 
@@ -85,7 +85,7 @@ subtest 'build: builds killed' => sub {
         '*' => sub {
             my ($ev, $data) = @_;
 
-            if ($ev eq 'build' && $data->{status} eq 'K') {
+            if ($ev eq 'build.update' && $data->{status} eq 'K') {
                 $cv->end;
             }
 
@@ -134,38 +134,6 @@ projects:
       build:
         - $cmd
 EOF
-}
-
-sub _run_pool {
-    my (%params) = @_;
-
-    my $cv = AnyEvent->condvar;
-
-    $cv->begin;
-
-    my $pool = _build(
-        config   => _build_config($params{config}),
-        on_event => sub {
-            my ($ev, $uuid) = @_;
-
-            if ($ev eq 'build.done') {
-                $cv->end;
-            }
-            if ($ev eq 'build.error') {
-                $cv->end;
-            }
-        }
-    );
-
-    $pool->start;
-    $pool->peek;
-
-    $cv->recv;
-
-    $cv->begin;
-    $pool->stop(sub { $cv->end });
-
-    $cv->recv;
 }
 
 sub _build {

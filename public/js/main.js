@@ -91,8 +91,8 @@
             });
         });
 
-        events.connect('/events', function(data) {
-            eventBus.publish(data.type, data.data);
+        events.connect('/api/events', function(ev, data) {
+            eventBus.publish(ev, data);
         });
 
         $('.console').each(function(index, el) {
@@ -100,9 +100,9 @@
 
             $(el).height($(window).height() - 250);
 
-            var es = events.connect('/tail/' + build, function(ev) {
-                if (ev.type == 'output') {
-                    var data = ev.data.replace(/\\n/g, "\n");
+            var es = events.connect('/api/builds/' + build + '/tail', function(ev, data) {
+                if (ev == 'tail.output') {
+                    data = data.replace(/\\n/g, "\n");
                     $(el).append(data);
                 } else {
                     es.close();

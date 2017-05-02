@@ -8,7 +8,7 @@ use TestSetup;
 
 use AnyEvent;
 
-use_ok 'Crafty::Action::Index';
+use_ok 'Crafty::Action::API::ListBuilds';
 
 subtest 'index page' => sub {
     my $action = _build(env => {});
@@ -24,9 +24,9 @@ subtest 'index page' => sub {
     my ($res) = $cv->recv;
 
     is $res->[0], 200;
-    like $res->[2]->[0], qr/Crafty/;
+    like $res->[2]->[0], qr/uuid/;
 };
 
 done_testing;
 
-sub _build { TestSetup->build_action('Index', @_) }
+sub _build { TestSetup->build_action('API::ListBuilds', @_) }

@@ -1,6 +1,6 @@
-package Crafty::Action::Events;
+package Crafty::Action::API::WatchEvents;
 use Moo;
-extends 'Crafty::Action::Base';
+extends 'Crafty::Action::API::Base';
 
 use Promises qw(deferred);
 use JSON ();
@@ -10,7 +10,6 @@ use Crafty::Log;
 
 sub run {
     my $self = shift;
-    my (%params) = @_;
 
     return sub {
         my $respond = shift;
@@ -25,7 +24,7 @@ sub run {
                         my ($ev, $data) = @_;
 
                         eval {
-                            $conn->push(JSON::encode_json({ type => $ev, data => $data }));
+                            $conn->push(JSON::encode_json([ $ev, $data ]));
                             1;
                         } or do {
                             $conn->close;

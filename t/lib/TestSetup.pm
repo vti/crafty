@@ -125,8 +125,9 @@ sub mock_pool {
 
     my $mock = Test::MonkeyMock->new;
 
-    $mock->mock(start => sub { });
-    $mock->mock(peek  => sub { });
+    $mock->mock(start  => sub { });
+    $mock->mock(peek   => sub { });
+    $mock->mock(cancel => sub { });
 
     return $mock;
 }

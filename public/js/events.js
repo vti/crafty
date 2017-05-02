@@ -4,7 +4,8 @@ define(["/js/lib/EventSource.js"], function() {
         var listener = function (ev) {
             if (ev.type === "message") {
                 if (ev.data) {
-                    handler(jQuery.parseJSON(ev.data));
+                    var data = jQuery.parseJSON(ev.data);
+                    handler(data[0], data[1]);
                 }
             }
             else if (ev.type === "error") {

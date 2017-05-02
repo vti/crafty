@@ -24,7 +24,6 @@ use Getopt::Long;
 use Crafty;
 use Crafty::Log;
 use Crafty::Config;
-use Crafty::EventBus;
 use Crafty::PubSub;
 
 my $opt_base   = 'data';

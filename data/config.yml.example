@@ -4,7 +4,5 @@ pool:
     mode: detach
 projects:
     - id: myapp
-      webhooks:
-          - provider: rest
       build:
           - sleep 5

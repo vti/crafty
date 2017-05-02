@@ -1,6 +1,6 @@
-package Crafty::Action::Tail;
+package Crafty::Action::API::BuildTail;
 use Moo;
-extends 'Crafty::Action::Base';
+extends 'Crafty::Action::API::Base';
 
 use JSON ();
 use AnyEvent;
@@ -10,9 +10,9 @@ use Crafty::Log;
 
 sub run {
     my $self = shift;
-    my (%params) = @_;
+    my (%captures) = @_;
 
-    my $uuid = $params{build_id};
+    my $uuid = $captures{uuid};
 
     return sub {
         my $respond = shift;
@@ -22,13 +22,11 @@ sub run {
                 my ($build) = @_;
 
                 my $cb = Plack::App::EventSource->new(
-                    headers    => ['Access-Control-Allow-Credentials', 'true'],
+                    headers    => [ 'Access-Control-Allow-Credentials', 'true' ],
                     handler_cb => sub {
                         my ($conn, $env) = @_;
 
-                        my $stream =
-                          $self->config->catfile('builds_dir',
-                            $build->uuid . '.log');
+                        my $stream = $self->config->catfile('builds_dir', $build->uuid . '.log');
 
                         $self->tail($conn, $stream);
                     }
@@ -37,13 +35,13 @@ sub run {
                 $cb->($respond);
             },
             sub {
-                $respond->([404, [], ['Not found']]);
+                $respond->([ 404, [], ['Not found'] ]);
             }
           )->catch(
             sub {
                 Crafty::Log->error(@_);
 
-                $respond->([500, [], ['error']]);
+                $respond->([ 500, [], ['error'] ]);
             }
           );
     };
@@ -59,14 +57,12 @@ sub tail {
     $tail->tail(
         $path,
         on_error => sub {
-            warn 'error';
-            $conn->push(JSON::encode_json({type => 'error'}));
+            $conn->push(JSON::encode_json(['tail.error']));
             $conn->close;
             delete $connections->{"$conn"};
         },
         on_eof => sub {
-            warn 'eof';
-            $conn->push(JSON::encode_json({type => 'eof'}));
+            $conn->push(JSON::encode_json(['tail.eof']));
             $conn->close;
             delete $connections->{"$conn"};
         },
@@ -75,8 +71,7 @@ sub tail {
 
             $content =~ s{\n}{\\n}g;
 
-            $conn->push(
-                JSON::encode_json({type => 'output', data => $content}));
+            $conn->push(JSON::encode_json([ 'tail.output', $content ]));
         }
     );
 

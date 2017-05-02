@@ -24,10 +24,7 @@ sub error {
 
     return if $QUIET;
 
-    $msg = sprintf($msg, @args);
-    $msg =~ s{\s+$}{};
-
-    warn "ERROR: " . $msg . "\n";
+    warn "ERROR: " . $class->_format($msg, @args) . "\n";
 }
 
 sub info {
@@ -36,7 +33,17 @@ sub info {
 
     return unless $VERBOSE;
 
-    warn sprintf($msg, @args) . "\n";
+    warn $class->_format($msg, @args) . "\n";
+}
+
+sub _format {
+    my $class = shift;
+    my ($msg, @args) = @_;
+
+    $msg = @args ? sprintf($msg, @args) : $msg;
+    $msg =~ s{\s+$}{};
+
+    return $msg;
 }
 
 1;

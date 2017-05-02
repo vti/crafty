@@ -8,12 +8,12 @@ use TestSetup;
 
 use AnyEvent;
 
-use_ok 'Crafty::Action::Download';
+use_ok 'Crafty::Action::API::BuildLog';
 
 subtest 'error when build not found' => sub {
     my $action = _build(env => {});
 
-    my $cb = $action->run(build_id => '123');
+    my $cb = $action->run(uuid => '123');
 
     my $cv = AnyEvent->condvar;
 
@@ -29,7 +29,7 @@ subtest 'error when stream not found' => sub {
 
     my $build = TestSetup->create_build();
 
-    my $cb = $action->run(build_id => $build->uuid);
+    my $cb = $action->run(uuid => $build->uuid);
 
     my $cv = AnyEvent->condvar;
 
@@ -45,10 +45,9 @@ subtest 'downloads file' => sub {
 
     my $build = TestSetup->create_build();
 
-    TestSetup->write_file(TestSetup->base . '/builds/' . $build->uuid . '.log',
-        'hello');
+    TestSetup->write_file(TestSetup->base . '/builds/' . $build->uuid . '.log', 'hello');
 
-    my $cb = $action->run(build_id => $build->uuid);
+    my $cb = $action->run(uuid => $build->uuid);
 
     my $cv = AnyEvent->condvar;
 
@@ -62,8 +61,7 @@ subtest 'downloads file' => sub {
         'Content-Type'        => 'text/plain',
         'Content-Length'      => 5,
         'Last-Modified'       => ignore(),
-        'Content-Disposition' => 'attachment; filename='
-          . $build->uuid . '.log'
+        'Content-Disposition' => 'attachment; filename=' . $build->uuid . '.log'
       ];
     my $fh = $res->[2];
     is <$fh>, 'hello';
@@ -71,4 +69,4 @@ subtest 'downloads file' => sub {
 
 done_testing;
 
-sub _build { TestSetup->build_action('Download', @_) }
+sub _build { TestSetup->build_action('API::BuildLog', @_) }

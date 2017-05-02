@@ -1,6 +1,6 @@
 <div class="col-sm-12 col-md-12 main">
     <ol class="breadcrumb">
-        <li class="active">Builds ({{builds_count}})</li>
+        <li class="active">Builds ({{total}})</li>
     </ol>
 
     <div class="table-responsive">
@@ -25,7 +25,7 @@
                     </th>
                 </tr>
             </thead>
-            <tbody data-event="build.new" data-method="prepend" data-template=".template tbody">
+            <tbody data-event="build.create" data-method="prepend" data-template=".template tbody">
                 {{#builds}}
                 {{>include/build.caml}}
                 {{/builds}}

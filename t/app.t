@@ -14,7 +14,7 @@ subtest 'error on unknown path' => sub {
 
     my $psgi = $app->to_psgi;
 
-    my $res = $psgi->({PATH_INFO => '/unknown'});
+    my $res = $psgi->({ PATH_INFO => '/unknown', REQUEST_METHOD => 'GET' });
 
     is $res->[0], 404;
 };
@@ -24,7 +24,7 @@ subtest 'returns rendered page' => sub {
 
     my $psgi = $app->to_psgi;
 
-    my $cb = $psgi->({PATH_INFO => '/'});
+    my $cb = $psgi->({ PATH_INFO => '/', REQUEST_METHOD => 'GET' });
 
     my $cv = AnyEvent->condvar;
 
@@ -49,4 +49,3 @@ sub _build {
         pool   => TestSetup->mock_pool
     );
 }
-

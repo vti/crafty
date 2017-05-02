@@ -8,12 +8,12 @@ use TestSetup;
 
 use AnyEvent;
 
-use_ok 'Crafty::Action::Restart';
+use_ok 'Crafty::Action::API::RestartBuild';
 
 subtest 'error when build not found' => sub {
     my $action = _build(env => {});
 
-    my $cb = $action->run(build_id => '123');
+    my $cb = $action->run(uuid => '123');
 
     my $cv = AnyEvent->condvar;
 
@@ -29,7 +29,7 @@ subtest 'error when build not restartable' => sub {
 
     my $build = TestSetup->create_build(status => 'N');
 
-    my $cb = $action->run(build_id => $build->uuid);
+    my $cb = $action->run(uuid => $build->uuid);
 
     my $cv = AnyEvent->condvar;
 
@@ -37,7 +37,7 @@ subtest 'error when build not restartable' => sub {
 
     my ($res) = $cv->recv;
 
-    is $res->[0], 404;
+    is $res->[0], 400;
 };
 
 subtest 'redirects' => sub {
@@ -45,7 +45,7 @@ subtest 'redirects' => sub {
 
     my $build = TestSetup->create_build(status => 'S');
 
-    my $cb = $action->run(build_id => $build->uuid);
+    my $cb = $action->run(uuid => $build->uuid);
 
     my $cv = AnyEvent->condvar;
 
@@ -53,7 +53,7 @@ subtest 'redirects' => sub {
 
     my ($res) = $cv->recv;
 
-    is $res->[0], 302;
+    is $res->[0], 200;
 
     $build = TestSetup->load_build($build->uuid);
 
@@ -62,4 +62,4 @@ subtest 'redirects' => sub {
 
 done_testing;
 
-sub _build { TestSetup->build_action('Restart', @_) }
+sub _build { TestSetup->build_action('API::RestartBuild', @_) }

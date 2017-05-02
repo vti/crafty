@@ -7,7 +7,7 @@
 
         <img src="/img/loader.gif"
              class="{{^is_cancelable}}hidden{{/is_cancelable}}"
-             data-event="build"
+             data-event="build.update"
              data-uuid="{{uuid}}"
              data-key="is_cancelable"
              data-method="toggle"
@@ -24,13 +24,13 @@
     </td>
     <td>
         <span class="label label-{{status_display}}"
-              data-event="build"
+              data-event="build.update"
               data-uuid="{{uuid}}"
               data-key="status_display"
               data-method="replace_class"
               data-prefix="label-">
             <span
-              data-event="build"
+              data-event="build.update"
               data-uuid="{{uuid}}"
               data-key="status_name"
               data-method="text">
@@ -40,7 +40,7 @@
     </td>
     <td>
         <div title="{{started}}"
-             data-event="build"
+             data-event="build.update"
              data-uuid="{{uuid}}"
              data-key="started"
              data-method="text"
@@ -49,7 +49,7 @@
     </td>
     <td>
         <div title="{{duration}}"
-             data-event="build"
+             data-event="build.update"
              data-uuid="{{uuid}}"
              data-key="duration"
              data-method="text"
