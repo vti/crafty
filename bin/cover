@@ -1,3 +1,5 @@
 #!/bin/bash
 
+PATH="perl5/bin:$PATH"
+
 bin/env cover -coverage stmt,bran,cond,sub -t -make 'prove t; echo > /dev/null' +select ^lib +ignore ^ "$@"

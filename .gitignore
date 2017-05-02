@@ -4,3 +4,4 @@ db.db
 data/builds/
 data/config.yml
 tmp/
+cover_db/
