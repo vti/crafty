@@ -131,15 +131,19 @@ sub to_psgi {
 
         enable '+Crafty::Middleware::Routes', routes => $self->build_routes;
 
-        enable_if { $_[0]->{PATH_INFO} !~ m{^/api/} } '+Crafty::Middleware::Access', config => $self->config;
-        enable_if { $_[0]->{PATH_INFO} =~ m{^/api/} } 'Auth::Basic', authenticator => sub {
-            my ($username, $password, $env) = @_;
+        enable '+Crafty::Middleware::User', config => $self->config;
 
-            return unless my $user = $self->config->user($username);
+        enable '+Crafty::Middleware::Access',
+          config => $self->config,
+          denier => sub {
+            my ($env) = @_;
 
-            my $checker = Crafty::Password->new(hashing => $user->{hashing}, salt => $user->{salt});
-            return $checker->equals($username, $password, $user->{password});
-        };
+            if ($env->{PATH_INFO} =~ m{^/api/}) {
+                return [ 401, [], ['Authentication needed'] ];
+            }
+
+            return [ 302, [ Location => '/login' ], [] ];
+          };
 
         return $psgi;
     };

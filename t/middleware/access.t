@@ -15,7 +15,7 @@ subtest 'grants access to login page always' => sub {
     my $routes = _build_routes();
     my $route  = $routes->match('/login');
 
-    my $res = $build->call({ 'crafty.route' => $route, 'psgix.session' => {}, 'psgix.session.options' => {} });
+    my $res = $build->call({ 'crafty.route' => $route });
 
     is $res->[0], 200;
 };
@@ -26,18 +26,18 @@ subtest 'grants access to public page' => sub {
     my $routes = _build_routes();
     my $route  = $routes->match('/public');
 
-    my $res = $build->call({ 'crafty.route' => $route, 'psgix.session' => {}, 'psgix.session.options' => {} });
+    my $res = $build->call({ 'crafty.route' => $route });
 
     is $res->[0], 200;
 };
 
 subtest 'denies access to private page when no user' => sub {
-    my $build = _build();
+    my $build = _build(denier => sub { [ 302, [], [] ] });
 
     my $routes = _build_routes();
     my $route  = $routes->match('/private');
 
-    my $res = $build->call({ 'crafty.route' => $route, 'psgix.session' => {}, 'psgix.session.options' => {} });
+    my $res = $build->call({ 'crafty.route' => $route });
 
     is $res->[0], 302;
 };
@@ -48,8 +48,7 @@ subtest 'grants access to private page to correct user' => sub {
     my $routes = _build_routes();
     my $route  = $routes->match('/private');
 
-    my $res = $build->call(
-        { 'crafty.route' => $route, 'psgix.session' => { username => 'username' }, 'psgix.session.options' => {} });
+    my $res = $build->call({ 'crafty.route' => $route, 'crafty.username' => 'user' });
 
     is $res->[0], 200;
 };
