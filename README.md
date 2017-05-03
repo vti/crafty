@@ -12,6 +12,7 @@ Crafty is a dead simple but useful for personal projects CI server.
 - [x] realtime log tails
 - [x] REST API
 - [x] integrations with GitHub, GitLab and BitBucket
+- [x] authentication
 
 ## Configuration (YAML)
 
@@ -20,19 +21,44 @@ For default configuration see
 
 ```yaml
 ---
+access:
+    mode: public
+    users:
+        - username: admin
+          password: ab7762952be439c958a7398492a6a3706117e61a217e0e
+          hashing: bcrypt
 pool:
     workers: 2
     mode: detach
 projects:
     - id: app
-      webhooks:
-          - provider: rest
       build:
           - sleep 10
 ```
 
 Configuration file is validated against Kwalify schema
 [schema/config.yml](https://github.com/vti/crafty/blob/master/schema/config.yml).
+
+## Authentication
+
+Two modes are available: `public` and `private`. The first one `public` mode means that anonymous users can browse the
+crafty server but cannot do any modifying operations like restarting, canceling etc. The `private` mode will not
+accept not logged in users.
+
+## Hashing passwords
+
+A special utility `util/hash-password.pl` is provided to make hashing password easier. For example we want to create
+a user `admin` with password `pa$$w0rd` using `bcrypt` hashing algorithm and salt `thisismysalt`:
+
+```
+$ bin/env util/hash-password.pl --hashing bcrypt --salt thisismysalt admin pa$$w0rd
+username: admin
+password: 1e52bcc68f3eef5eb9c9a116a678e81dcf7ffa659454dc
+hashing: bcrypt
+salt: thisismysalt
+```
+
+Put the output into `access.users` section of the config file.
 
 ## Installation
 
@@ -126,6 +152,22 @@ In our case:
 ## REST API
 
 ### Essentials
+
+#### Authentication
+
+Basic authentication is used. The username and password are loaded from the config:
+
+```yaml
+access:
+    users:
+       - username: api
+         password: ab7762952be439c958a7398492a6a3706117e61a217e0e
+         hashing: bcrypt
+```
+
+Example:
+
+    curl http://api:password@localhost:5000/api/builds
 
 #### Client Errors
 

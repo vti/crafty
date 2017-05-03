@@ -1,6 +1,42 @@
 ---
 type: map
 mapping:
+  access:
+    type: map
+    mapping:
+      mode:
+        enum:
+          - public
+          - private
+        type: str
+      session:
+        type: map
+        mapping:
+          secret:
+            type: str
+          expires:
+            type: int
+          httponly:
+            type: int
+          secure:
+            type: int
+          domain:
+            type: str
+          path:
+            type: str
+      users:
+        type: seq
+        sequence:
+          - type: map
+            mapping:
+              username:
+                type: str
+              password:
+                type: str
+              hashing:
+                type: str
+              salt:
+                type: str
   listen:
     type: str
   pool:

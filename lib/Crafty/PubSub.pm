@@ -1,14 +1,15 @@
 package Crafty::PubSub;
 use Moo;
 
-has '_pid', is => 'rw', default => sub { 0 };
-has '_host',        is => 'rw';
-has '_port',        is => 'rw';
+has '_sock',        is => 'rw';
+has '_pid',         is => 'rw', default => sub { 0 };
 has '_subscribers', is => 'ro', default => sub { {} };
 
 use Promises qw(deferred collect);
 use JSON ();
 use AnyEvent::HTTP;
+use AnyEvent::Handle;
+use AnyEvent::Socket;
 use Crafty::Log;
 
 our $INSTANCE;
@@ -29,30 +30,53 @@ sub instance {
     return $INSTANCE;
 }
 
-sub own {
+sub listen {
     my $self = shift;
-    my ($listen) = @_;
+    my ($sock) = @_;
 
     $self->_pid($$);
+    $self->_sock($sock);
+
+    if ($self->_sock) {
+        Crafty::Log->info('Creating sock file %s', $self->_sock);
+
+        $self->{server} = tcp_server 'unix/', $self->_sock, sub {
+            my ($fh) = @_ or die "Can't open sock file: $!";
+
+            my $handle;
+            $handle = AnyEvent::Handle->new(
+                fh       => $fh,
+                on_error => sub {
+                    $_[0]->destroy;
+                },
+                on_eof => sub {
+                    $handle->destroy;
+                },
+                on_read => sub {
+                    my $content = $_[0]->rbuf;
+
+                    $handle->push_read(
+                        json => sub {
+                            my ($handle, $msg) = @_;
+
+                            $self->publish(@$msg);
+                        }
+                    );
+                }
+            );
+        }, sub {
+            Crafty::Log->info('Sock created');
+        };
+    }
 
     return $self;
 }
 
-sub address {
+sub connect {
     my $self = shift;
-    my ($listen) = @_;
+    my ($sock) = @_;
 
-    return unless $listen;
-
-    my ($host, $port) = split /:/, $listen, 2;
-    $host =~ s{^https?:\/\/}{};
-
-    if ($host eq '0.0.0.0') {
-        $host = '127.0.0.1';
-    }
-
-    $self->_host($host);
-    $self->_port($port);
+    $self->_sock($sock);
 
     return $self;
 }
@@ -80,31 +104,39 @@ sub publish {
             push @promises, $subscriber->($ev, $data);
         }
     }
-    elsif ($self->_host && $self->_port) {
-        my $deferred = deferred;
-
-        my $url = sprintf 'http://%s:%s/api/events', $self->_host, $self->_port;
-
-        my $body = JSON::encode_json([ $ev, $data ]);
-
-        $self->_http_post(
-            $url, $body,
-            sub {
-                $deferred->resolve;
-            }
-        );
-
-        push @promises, $deferred->promise;
+    elsif ($self->_sock) {
+        push @promises, $self->_push_event([$ev, $data]);
     }
 
     return collect(@promises);
 }
 
-sub _http_post {
+sub _push_event {
     my $self = shift;
-    my ($url, $body, $cb) = @_;
+    my ($body) = @_;
 
-    http_post $url, $body, $cb;
+    my $deferred = deferred;
+
+    tcp_connect 'unix/', $self->_sock, sub {
+        my ($fh) = @_ or return $deferred->reject;
+
+        my $handle;
+        $handle = AnyEvent::Handle->new(
+            fh       => $fh,
+            on_error => sub {
+                $_[0]->destroy;
+            },
+            on_eof => sub {
+                $handle->destroy;
+            }
+        );
+
+        $handle->push_write(json => $body);
+
+        return $deferred->resolve;
+    };
+
+    return $deferred->promise;
 }
 
 1;

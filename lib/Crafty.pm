@@ -4,8 +4,10 @@ use Moo;
 use Class::Load ();
 use Routes::Tiny;
 use Text::Caml;
+use Plack::Builder;
 use Crafty::DB;
 use Crafty::Pool;
+use Crafty::Password;
 
 has 'root', is => 'ro', default => sub { '.' };
 has 'config', is => 'ro', required => 1;
@@ -48,21 +50,44 @@ sub build_routes {
 
     my $routes = Routes::Tiny->new;
 
+    $routes->add_route('/login', name => 'Login');
+    $routes->add_route('/logout', name => 'Logout', arguments => { access => 'private' });
+
     $routes->add_route('/',               method => 'GET',  name => 'Index');
     $routes->add_route('/builds/:uuid',   method => 'GET',  name => 'Build');
-    $routes->add_route('/cancel/:uuid',   method => 'POST', name => 'Cancel');
+    $routes->add_route('/cancel/:uuid',   method => 'POST', name => 'Cancel', arguments => { access => 'private' });
     $routes->add_route('/download/:uuid', method => 'GET',  name => 'Download');
-    $routes->add_route('/restart/:uuid',  method => 'POST', name => 'Restart');
+    $routes->add_route('/restart/:uuid',  method => 'POST', name => 'Restart', arguments => { access => 'private' });
 
-    $routes->add_route('/api/builds',               method => 'POST', name => 'API::CreateBuild');
-    $routes->add_route('/api/builds',               method => 'GET',  name => 'API::ListBuilds');
-    $routes->add_route('/api/builds/:uuid',         method => 'GET',  name => 'API::GetBuild');
-    $routes->add_route('/api/builds/:uuid/cancel',  method => 'POST', name => 'API::CancelBuild');
-    $routes->add_route('/api/builds/:uuid/restart', method => 'POST', name => 'API::RestartBuild');
-    $routes->add_route('/api/builds/:uuid/tail',    method => 'GET',  name => 'API::BuildTail');
-    $routes->add_route('/api/builds/:uuid/log',     method => 'GET',  name => 'API::BuildLog');
-    $routes->add_route('/api/events',               method => 'GET',  name => 'API::WatchEvents');
-    $routes->add_route('/api/events',               method => 'POST', name => 'API::CreateEvent');
+    $routes->add_route(
+        '/api/builds',
+        method    => 'POST',
+        name      => 'API::CreateBuild',
+        arguments => { access => 'private' }
+    );
+    $routes->add_route('/api/builds',       method => 'GET', name => 'API::ListBuilds');
+    $routes->add_route('/api/builds/:uuid', method => 'GET', name => 'API::GetBuild');
+    $routes->add_route(
+        '/api/builds/:uuid/cancel',
+        method    => 'POST',
+        name      => 'API::CancelBuild',
+        arguments => { access => 'private' }
+    );
+    $routes->add_route(
+        '/api/builds/:uuid/restart',
+        method    => 'POST',
+        name      => 'API::RestartBuild',
+        arguments => { access => 'private' }
+    );
+    $routes->add_route('/api/builds/:uuid/tail', method => 'GET', name => 'API::BuildTail');
+    $routes->add_route('/api/builds/:uuid/log',  method => 'GET', name => 'API::BuildLog');
+    $routes->add_route('/api/events',            method => 'GET', name => 'API::WatchEvents');
+    $routes->add_route(
+        '/api/events',
+        method    => 'POST',
+        name      => 'API::CreateEvent',
+        arguments => { access => 'private' }
+    );
 
     $routes->add_route('/webhook/:provider/:project', name => 'Webhook');
 
@@ -72,31 +97,51 @@ sub build_routes {
 sub to_psgi {
     my $self = shift;
 
-    my $routes = $self->build_routes;
-    my $view   = $self->view;
+    my $view = $self->view;
 
-    return sub {
+    my $psgi = sub {
         my ($env) = @_;
 
-        my $path_info = $env->{PATH_INFO};
+        my $match = $env->{'crafty.route'};
+        return [ 404, [], ['Not Found'] ] unless $match;
 
-        my $match = $routes->match($path_info, method => $env->{REQUEST_METHOD});
+        my $action = $self->_build_action(
+            $match->name,
+            env    => $env,
+            view   => $view,
+            config => $self->config,
+            db     => $self->db,
+            pool   => $self->pool,
+        );
 
-        if ($match) {
-            my $action = $self->_build_action(
-                $match->name,
-                env    => $env,
-                view   => $view,
-                config => $self->config,
-                db     => $self->db,
-                pool   => $self->pool,
-            );
+        return $action->run(%{ $match->captures || {} });
+    };
 
-            return $action->run(%{ $match->captures || {} });
-        }
-        else {
-            return [ 404, [], ['Not Found'] ];
-        }
+    return builder {
+        enable_if { $_[0]->{REMOTE_ADDR} eq '127.0.0.1' } 'ReverseProxy';
+
+        enable 'Static',
+          path => qr{^/(img|js|css|fonts)/},
+          root => $self->root . '/public';
+
+        enable 'Session::Cookie',
+          session_key => 'crafty',
+          expires     => 600,
+          %{ $self->config->config->{access}->{session} // {} };
+
+        enable '+Crafty::Middleware::Routes', routes => $self->build_routes;
+
+        enable_if { $_[0]->{PATH_INFO} !~ m{^/api/} } '+Crafty::Middleware::Access', config => $self->config;
+        enable_if { $_[0]->{PATH_INFO} =~ m{^/api/} } 'Auth::Basic', authenticator => sub {
+            my ($username, $password, $env) = @_;
+
+            return unless my $user = $self->config->user($username);
+
+            my $checker = Crafty::Password->new(hashing => $user->{hashing}, salt => $user->{salt});
+            return $checker->equals($username, $password, $user->{password});
+        };
+
+        return $psgi;
     };
 }
 

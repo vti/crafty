@@ -23,7 +23,10 @@ requires 'CGI::Emulate::PSGI';
 requires 'Plack';
 requires 'Plack::App::EventSource';
 requires 'Plack::Middleware::ReverseProxy';
+requires 'Plack::Middleware::Session';
 requires 'Twiggy';
+
+requires 'Digest::Bcrypt';
 
 on 'test' => sub {
     requires 'Test::More';

@@ -38,6 +38,18 @@ sub build_config {
     if (!$content) {
         print $fh <<'EOF';
 ---
+access:
+    mode: public
+    session:
+        expires: 600
+        secret: $ecret
+    users:
+        - username: api
+          password: 2f5af97048388e90c2c7f7ef5fd93f10
+          hashing: md5
+        - username: username
+          password: 0665fcae289dda92188f71c03828220b
+          hashing: md5
 projects:
     - id: my_project
       build:

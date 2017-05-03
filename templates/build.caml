@@ -32,7 +32,7 @@
                      data-key="is_cancelable"
                      data-method="toggle">
                     <form method="POST" action="/cancel/{{build.uuid}}" class="ajax">
-                        <button class="btn btn-xs btn-danger">
+                        <button class="btn btn-xs btn-danger{{^username}} disabled{{/username}}">
                             <span class="glyphicon glyphicon-remove"></span> cancel
                         </button>
                     </form>
@@ -44,7 +44,7 @@
                      data-key="is_restartable"
                      data-method="toggle">
                     <form method="POST" action="/restart/{{build.uuid}}" class="ajax">
-                        <button class="btn btn-xs btn-default">
+                        <button class="btn btn-xs btn-default{{^username}} disabled{{/username}}">
                             <span class="glyphicon glyphicon-repeat"></span> rebuild
                         </button>
                     </form>

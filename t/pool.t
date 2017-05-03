@@ -17,7 +17,7 @@ subtest 'build: builds successfully' => sub {
     my $cv = AnyEvent->condvar;
 
     $cv->begin;
-    Crafty::PubSub->instance->own->subscribe(
+    Crafty::PubSub->instance->listen('/tmp/sock')->subscribe(
         '*' => sub {
             my ($ev, $data) = @_;
 
@@ -49,7 +49,7 @@ subtest 'build: builds failure' => sub {
     my $cv = AnyEvent->condvar;
 
     $cv->begin;
-    Crafty::PubSub->instance->own->subscribe(
+    Crafty::PubSub->instance->listen('/tmp/sock')->subscribe(
         '*' => sub {
             my ($ev, $data) = @_;
 
@@ -81,7 +81,7 @@ subtest 'build: builds killed' => sub {
     my $cv = AnyEvent->condvar;
 
     $cv->begin;
-    Crafty::PubSub->instance->own->subscribe(
+    Crafty::PubSub->instance->listen('/tmp/sock')->subscribe(
         '*' => sub {
             my ($ev, $data) = @_;
 

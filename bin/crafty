@@ -16,10 +16,8 @@ BEGIN {
     unshift @INC, "$root/lib";
 }
 
+use Cwd qw(abs_path);
 use Plack::Runner;
-use Plack::Builder;
-use Plack::App::EventSource;
-use Plack::App::File;
 use Getopt::Long;
 use Crafty;
 use Crafty::Log;
@@ -39,13 +37,13 @@ GetOptions(
 
 Crafty::Log->init(verbose => 1) if $opt_verbose;
 
-my $config = Crafty::Config->new(root => $root, base => $opt_base);
+my $config = Crafty::Config->new(root => $root, base => abs_path($opt_base));
 $config->load($opt_config);
 
 $opt_listen //= $config->config->{listen} // '0.0.0.0:5000';
 $config->config->{listen} //= $opt_listen;
 
-Crafty::PubSub->instance->own->address($opt_listen);
+Crafty::PubSub->instance->listen($opt_base . '/crafty.sock');
 
 my $app = Crafty->new(config => $config, root => $root);
 
@@ -63,22 +61,7 @@ $w = AE::signal HUP => sub {
     kill 'TERM', $$;
 };
 
-my $psgi = builder {
-    mount '/' => builder {
-        enable_if { $_[0]->{REMOTE_ADDR} eq '127.0.0.1' }
-        'Plack::Middleware::ReverseProxy';
-
-        enable "Plack::Middleware::Static",
-          path => qr{^/(img|js|css|fonts)/},
-          root => "$root/public";
-
-        enable "HTTPExceptions", rethrow => 1;
-
-        #enable "AccessLog", format => "combined";
-
-        return $app->to_psgi;
-    };
-};
+my $psgi = $app->to_psgi;
 
 warn "Listening on $opt_listen ($$)\n";
 

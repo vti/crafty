@@ -1,8 +1,8 @@
 package Crafty::Action::Base;
 use Moo;
 
-use Plack::Request;
 use JSON ();
+use Plack::Request;
 
 has 'config', is => 'ro', required => 1;
 has 'env',    is => 'ro', required => 1;
@@ -30,8 +30,12 @@ sub render {
         if ($body && ref $body && !$body->{ok}) {
             my $template = lc((split /::/, ref($self))[-1]) . '.caml';
 
+            my $username = $self->env->{'crafty.username'} // '';
+
+            $body->{username} = $username;
+
             my $content = $self->view->render_file($template, $body);
-            $body = $self->view->render_file('layout.caml', { content => $content });
+            $body = $self->view->render_file('layout.caml', { content => $content, username => $username });
         }
     }
     elsif ($self->content_type eq 'application/json') {

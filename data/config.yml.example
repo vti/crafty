@@ -1,4 +1,13 @@
 ---
+access:
+    mode: public
+    session:
+        expires: 600
+        secret: $ecret
+    users:
+        - username: admin
+          password: ab7762952be439c958a7398492a6a3706117e61a217e0e
+          hashing: bcrypt
 pool:
     workers: 4
     mode: detach

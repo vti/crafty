@@ -30,7 +30,7 @@ sub run {
     $config         = JSON::decode_json($config);
     $project_config = JSON::decode_json($project_config);
 
-    Crafty::PubSub->instance->address($config->{listen});
+    Crafty::PubSub->instance->connect($config->{base} . '/crafty.sock');
 
     __PACKAGE__->new(
         config         => $config,

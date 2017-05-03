@@ -14,7 +14,7 @@ subtest 'error on unknown path' => sub {
 
     my $psgi = $app->to_psgi;
 
-    my $res = $psgi->({ PATH_INFO => '/unknown', REQUEST_METHOD => 'GET' });
+    my $res = $psgi->({ PATH_INFO => '/unknown', REQUEST_METHOD => 'GET', REMOTE_ADDR => '' });
 
     is $res->[0], 404;
 };
@@ -24,7 +24,7 @@ subtest 'returns rendered page' => sub {
 
     my $psgi = $app->to_psgi;
 
-    my $cb = $psgi->({ PATH_INFO => '/', REQUEST_METHOD => 'GET' });
+    my $cb = $psgi->({ PATH_INFO => '/', REQUEST_METHOD => 'GET', REMOTE_ADDR => '' });
 
     my $cv = AnyEvent->condvar;
 

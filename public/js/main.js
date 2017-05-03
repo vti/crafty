@@ -126,5 +126,11 @@
 
             return false;
         });
+
+        $(document).ajaxError(function(event, xhr, settings, thrownError) {
+            if (xhr.status == 401) {
+                window.location.href = '/login';
+            }
+        });
     });
 })();

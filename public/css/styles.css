@@ -22,3 +22,7 @@ html, body {
 .clear {
     clear:both;
 }
+
+.spacer {
+    height: 20px;
+}

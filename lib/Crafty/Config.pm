@@ -1,6 +1,7 @@
 package Crafty::Config;
 use Moo;
 
+use List::Util qw(first);
 use YAML::Tiny;
 use File::Spec;
 use Kwalify;
@@ -18,6 +19,17 @@ sub project {
     my ($project) = grep { $_->{id} eq $id } @$projects;
 
     return $project;
+}
+
+sub user {
+    my $self = shift;
+    my ($username) = @_;
+
+    my $users = $self->{config}->{access}->{users} || [];
+
+    my $user = first { $_->{username} eq $username } @$users;
+
+    return $user;
 }
 
 sub db_file {
@@ -49,6 +61,7 @@ sub load {
       $self->resolve_path($self->{config}->{builds_dir}, 'builds');
 
     $self->{config}->{pool}->{mode} //= 'fork';
+    $self->{config}->{base} //= $self->base;
 
     return $self->{config};
 }

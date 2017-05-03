@@ -7,6 +7,7 @@ use Test::Deep;
 use TestSetup;
 
 use AnyEvent;
+use MIME::Base64 qw(encode_base64);
 use JSON ();
 use HTTP::Request::Common;
 use HTTP::Message::PSGI qw(req_to_psgi);
@@ -19,7 +20,7 @@ subtest 'returns zero response when no builds' => sub {
 
     my $app = _build();
 
-    my $cb = $app->(req_to_psgi GET('/api/builds'));
+    my $cb = $app->(req_to_psgi GET('/api/builds', _headers()));
 
     $cb->(sub { $cv->send(@_) });
 
@@ -43,7 +44,7 @@ subtest 'returns builds' => sub {
 
     my $app = _build();
 
-    my $cb = $app->(req_to_psgi GET('/api/builds'));
+    my $cb = $app->(req_to_psgi GET('/api/builds', _headers()));
 
     $cb->(sub { $cv->send(@_) });
 
@@ -62,6 +63,10 @@ done_testing;
 
 sub _setup {
     TestSetup->cleanup_db;
+}
+
+sub _headers {
+    return (Authorization => 'Basic ' . encode_base64('api:password'));
 }
 
 sub _build {

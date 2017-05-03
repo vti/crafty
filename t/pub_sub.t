@@ -12,7 +12,7 @@ use_ok 'Crafty::PubSub';
 subtest 'subscribes and publishes' => sub {
     my $pubsub = _build();
 
-    $pubsub->own;
+    $pubsub->listen('/tmp/sock');
 
     my $event;
     my $data;
@@ -40,7 +40,7 @@ subtest 'subscribes and publishes' => sub {
 subtest 'subscribes and publishes to everything' => sub {
     my $pubsub = _build();
 
-    $pubsub->own;
+    $pubsub->listen('/tmp/sock');
 
     my $called;
     $pubsub->subscribe(
@@ -61,7 +61,7 @@ subtest 'subscribes and publishes to everything' => sub {
 subtest 'does nothing when no subscribers' => sub {
     my $pubsub = _build();
 
-    $pubsub->own;
+    $pubsub->listen('/tmp/sock');
 
     my $called;
     $pubsub->subscribe(
@@ -81,8 +81,8 @@ subtest 'sends request when not owner' => sub {
 
     my $pubsub = _build();
     $pubsub = Test::MonkeyMock->new($pubsub);
-    $pubsub->mock(_http_post => sub { shift; my ($url, $body, $cb) = @_; $request = [ $url, $body ]; $cb->() });
-    $pubsub->address('localhost:5000');
+    $pubsub->mock(_push_event => sub { shift; ($request) = @_; return deferred->resolve->promise; });
+    $pubsub->connect('/tmp/sock');
 
     my $cv = AnyEvent->condvar;
 
@@ -94,8 +94,7 @@ subtest 'sends request when not owner' => sub {
 
     $cv->wait;
 
-    like $request->[0], qr/localhost:5000/;
-    is_deeply JSON::decode_json($request->[1]), [ 'my.event', { foo => 'bar' } ];
+    is_deeply $request, [ 'my.event', { foo => 'bar' } ];
 };
 
 done_testing;
