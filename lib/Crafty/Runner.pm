@@ -53,6 +53,8 @@ sub run {
 
                   chdir $build_dir;
 
+                  $ENV{HOME} = $build_dir;
+
                   eval {
                       require JSON;
                       $env = JSON::decode_json($env);
