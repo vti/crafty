@@ -74,7 +74,7 @@ sub _detach {
         exit 0;
     }
     else {
-        umask 0;
+        chdir $self->config->{builds_dir};
 
         foreach (0 .. (POSIX::sysconf(&POSIX::_SC_OPEN_MAX) || 1024)) {
             POSIX::close $_;
