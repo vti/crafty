@@ -51,20 +51,22 @@ sub tail {
     my $self = shift;
     my ($conn, $path) = @_;
 
-    my $connections = $self->{tails};
-
     my $tail = Crafty::Tail->new;
     $tail->tail(
         $path,
         on_error => sub {
             $conn->push(JSON::encode_json(['tail.error']));
             $conn->close;
-            delete $connections->{"$conn"};
+
+            $tail->stop;
+            delete $self->{tail};
         },
         on_eof => sub {
             $conn->push(JSON::encode_json(['tail.eof']));
             $conn->close;
-            delete $connections->{"$conn"};
+
+            $tail->stop;
+            delete $self->{tail};
         },
         on_read => sub {
             my ($content) = @_;
@@ -75,17 +77,16 @@ sub tail {
         }
     );
 
-    $connections->{"$conn"} = {
+    $self->{tail} = {
         conn      => $conn,
         tail      => $tail,
         heartbeat => AnyEvent->timer(
-            interval => 30,
+            interval => 15,
             cb       => sub {
-                eval {
-                    $conn->push('');
-                    1;
-                } or do {
-                    delete $connections->{"$conn"};
+                $conn->push('') or do {
+                    $tail->stop;
+
+                    delete $self->{tail};
                 };
             }
         )

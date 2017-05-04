@@ -23,12 +23,7 @@ sub run {
                     '*' => sub {
                         my ($ev, $data) = @_;
 
-                        eval {
-                            $conn->push(JSON::encode_json([ $ev, $data ]));
-                            1;
-                        } or do {
-                            $conn->close;
-                        };
+                        $conn->push(JSON::encode_json([ $ev, $data ]));
 
                         return deferred->resolve;
                     }
