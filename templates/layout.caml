@@ -44,6 +44,9 @@
                 <div id="navbar" class="navbar-collapse collapse">
                     <ul class="nav navbar-nav navbar-right">
                         <li>
+                            <a href="https://github.com/vti/crafty#crafty">Docs</a>
+                        </li>
+                        <li>
                             {{^username}}
                             <a href="/login">Login</a>
                             {{/username}}
@@ -67,6 +70,20 @@
             </div>
 
         </div>
+
+            <div class="container-fluid">
+                <div class="row">
+
+                    <p class="text-center">
+                        <a href="http://github.com/vti/crafty">Crafty</a>. CI server
+                    </p>
+
+                    <p class="text-center">
+                        Written by <a href="http://github.com/vti">vti</a>. Powered by <a href="http://perl.org">Perl</a>
+                    </p>
+
+                </div>
+            </div>
 
         <script src="/js/lib/jquery.min.js"></script>
         <script src="/js/lib/bootstrap.min.js"></script>
