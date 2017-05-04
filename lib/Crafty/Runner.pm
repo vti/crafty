@@ -35,7 +35,7 @@ sub run {
 
     make_path $build_dir;
 
-    open my $stream, '>', $self->{stream}
+    open my $stream, '>>', $self->{stream}
       or die "Can't create `$self->{stream}`: $!";
 
     my $tmp = tempfile();
