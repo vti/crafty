@@ -14,6 +14,10 @@ Crafty is a dead simple but useful for personal projects CI server.
 - [x] integrations with GitHub, GitLab and BitBucket
 - [x] authentication
 
+## Demo
+
+Working demo is available at <http://crafty.showmetheco.de>.
+
 ## Configuration (YAML)
 
 For default configuration see
