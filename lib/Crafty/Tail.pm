@@ -79,8 +79,10 @@ sub stop {
         kill 'INT', $pid;
     }
 
-    $self->{handle}->destroy;
-    delete $self->{handle};
+    if ($self->{handle}) {
+        $self->{handle}->destroy;
+        delete $self->{handle};
+    }
 
     return $self;
 }
