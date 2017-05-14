@@ -1,0 +1,15 @@
+#!/bin/sh
+
+export PERL5LIB=".:$PERL5LIB"
+
+util/cpm install --verbose -L perl5 $OPTS
+
+while test $# != 0
+do
+    case "$1" in
+    --dev)
+        util/cpanm -q -n -L perl5 Devel::Cover; shift; break;;
+    --) shift; break;;
+    *) shift; break;;
+    esac
+done
