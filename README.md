@@ -102,6 +102,9 @@ You have to have *Perl* :camel: and *SQLite3* installed.
     Bootstrap
     $ bin/bootstrap
 
+    or try fast bootstrap (this can be faster, but still experimental)
+    $ bin/bootstrap-fast
+
     Run migrations (if any)
     $ bin/migrate
 
