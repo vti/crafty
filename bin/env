@@ -1,5 +1,7 @@
-#!/bin/sh
+#!/bin/bash
 
-export PERL5LIB="lib:perl5/lib/perl5:$PERL5LIB"
+BINDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+export PERL5LIB="$BINDIR/lib:perl5/lib/perl5:$PERL5LIB"
+export PATH="$BINDIR:$BINDIR/../perl5/bin:$PATH"
 
 "$@"
