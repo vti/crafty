@@ -198,11 +198,32 @@ Example:
 
     {"error":"Oops"}
 
+### Index
+
+    GET /api
+
+**Response**
+
+    {
+        "title": "Crafty REST API",
+        "documentation": "https://github.com/vti/crafty",
+        "resources": [{
+            "method": "GET",
+            "href": "/",
+            "rel": "index"
+        }, ... ]
+    }
+
+
+**Example**
+
+    $ curl http://localhost:5000/api
+
 ### Build Management
 
 #### List Builds
 
-    GET /builds
+    GET /api/builds
 
 **Response**
 
@@ -228,7 +249,11 @@ Example:
             "version": 4,
             "message": "123",
             "author": "vti",
-            "started": "2017-05-02 11:43:44.558950+0200"
+            "started": "2017-05-02 11:43:44.558950+0200",
+            "links": [{
+                "href": "/api/builds/d51ef218-2f1b-11e7-ab6d-4dcfdc676234",
+                "rel": "build"
+            }]
         }, ...]
         "total": 5,
         "pager": {
@@ -242,7 +267,7 @@ Example:
 
 #### Get Build
 
-    GET /builds/:uuid
+    GET /api/builds/:uuid
 
 **Response**
 
@@ -269,7 +294,11 @@ Example:
             "version": 4,
             "message": "123",
             "author": "vti",
-            "started": "2017-05-02 11:43:44.558950+0200"
+            "started": "2017-05-02 11:43:44.558950+0200",
+            "links": [{
+                "href": "/api/builds/d51ef218-2f1b-11e7-ab6d-4dcfdc676234/log",
+                "rel": "build_log"
+            }, ...]
         }
     }
 
@@ -279,7 +308,7 @@ Example:
 
 #### Create Build
 
-    POST /builds
+    POST /api/builds
 
 **Content type**
 
@@ -308,7 +337,7 @@ Required
 
 #### Cancel Build
 
-    POST /builds/:uuid/cancel
+    POST /api/builds/:uuid/cancel
 
 **Response**
 
@@ -323,7 +352,7 @@ Required
 
 #### Restart Build
 
-    POST /builds/:uuid/restart
+    POST /api/builds/:uuid/restart
 
 **Response**
 
@@ -340,7 +369,7 @@ Required
 
 #### Download raw build log
 
-    GET /builds/:uuid/log
+    GET /api/builds/:uuid/log
 
 **Response**
 
@@ -356,7 +385,7 @@ Required
 
 #### Watching the build log
 
-    GET /builds/:uuid/tail
+    GET /api/builds/:uuid/tail
 
 **Content Type**
 
@@ -380,7 +409,7 @@ Output is in `text/event-stream` format. More info at
 
 #### Watching events
 
-    GET /events
+    GET /api/events
 
 **Content Type**
 
@@ -402,7 +431,7 @@ Output is in `text/event-stream` format. More info at
 
 #### Create event
 
-    POST /events
+    POST /api/events
 
 **Response**
 

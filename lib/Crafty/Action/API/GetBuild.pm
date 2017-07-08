@@ -17,7 +17,19 @@ sub run {
             sub {
                 my ($build) = @_;
 
-                $self->render(200, { build => $build->to_hash }, $respond);
+                $self->render(
+                    200,
+                    {
+                        build => {
+                            %{ $build->to_hash },
+                            links => [
+                                { href => '/api/builds/' . $build->uuid . '/log',    rel => 'build_log' },
+                                { href => '/api/builds/' . $build->uuid . '/cancel', rel => 'cancel_build' },
+                            ]
+                        }
+                    },
+                    $respond
+                );
             }
           )->catch(
             sub {

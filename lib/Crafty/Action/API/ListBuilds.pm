@@ -40,8 +40,15 @@ sub run {
                     200,
                     {
                         total  => $total,
-                        builds => [ map { $_->to_hash } @$builds ],
-                        pager  => $pager
+                        builds => [
+                            map {
+                                {
+                                    %{ $_->to_hash },
+                                      links => [ { href => '/api/builds/' . $_->uuid, rel => 'build' }, ]
+                                }
+                            } @$builds
+                        ],
+                        pager => $pager
                     },
                     $respond
                 );

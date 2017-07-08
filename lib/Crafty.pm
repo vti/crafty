@@ -60,6 +60,11 @@ sub build_routes {
     $routes->add_route('/restart/:uuid',  method => 'POST', name => 'Restart', arguments => { access => 'private' });
 
     $routes->add_route(
+        '/api',
+        method => 'GET',
+        name   => 'API::Index'
+    );
+    $routes->add_route(
         '/api/builds',
         method    => 'POST',
         name      => 'API::CreateBuild',
@@ -138,7 +143,7 @@ sub to_psgi {
           denier => sub {
             my ($env) = @_;
 
-            if ($env->{PATH_INFO} =~ m{^/api/}) {
+            if ($env->{PATH_INFO} =~ m{^/api}) {
                 return [ 401, [], ['Authentication needed'] ];
             }
 
