@@ -2,6 +2,8 @@
 
 Crafty is a dead simple but useful for personal projects CI server.
 
+[![Kritika Analysis Status](https://kritika.io/users/vti/repos/6398189121650261/heads/master/status.svg)](https://kritika.io/users/vti/repos/6398189121650261/heads/master/)
+
 ![Screencast1](/images/screencast1.gif)
 
 ## Features
