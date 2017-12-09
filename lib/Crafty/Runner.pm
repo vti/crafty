@@ -74,7 +74,7 @@ sub run {
                   foreach my $cmd (@cmds) {
                       print $cmd, "\n";
 
-                      open my $pipe, "$cmd |" or die $!;
+                      open my $pipe, "-|", $cmd or die $!;
 
                       $SIG{INT} = sub { close $pipe; print "Killed\n"; exit 255 };
 
