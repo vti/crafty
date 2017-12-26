@@ -57,6 +57,11 @@ mapping:
     - mapping:
         id:
           type: str
+        existing_rev:
+          enum:
+            - build
+            - ignore
+            - error
         webhooks:
           type: seq
           sequence:

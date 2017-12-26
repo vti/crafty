@@ -179,6 +179,19 @@ sub load_build {
     return $build;
 }
 
+sub find_build {
+    my $class = shift;
+    my (%cond) = @_;
+
+    my $cv = AnyEvent->condvar;
+
+    TestSetup->build_db->find(%cond)->done(sub { $cv->send(@_) }, sub { $cv->send });
+
+    my ($builds) = $cv->recv;
+
+    return $builds;
+}
+
 sub write_file {
     my $class = shift;
     my ($path, $content) = @_;

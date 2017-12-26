@@ -85,7 +85,113 @@ EOF
     like $res->[2]->[0], qr/not parsed/i;
 };
 
+subtest 'returns error when rev exists' => sub {
+    _setup();
+
+    my $tempdir = tempdir();
+
+    my $existing_build = TestSetup->create_build(rev => '123');
+
+    TestSetup->write_file("$tempdir/cgi.sh", <<'EOF');
+#!/bin/sh
+
+STDIN=`cat`
+
+echo "Status: 200"
+echo "X-Crafty-Build-Rev: 123"
+echo "X-Crafty-Build-Ref: refs/heads/master"
+echo "X-Crafty-Build-Author: vti"
+echo "X-Crafty-Build-Message: fix"
+echo
+echo "ok"
+
+exit 0
+EOF
+    chmod 0755, "$tempdir/cgi.sh";
+
+    my $config = <<"EOF";
+---
+projects:
+    - id: test
+      existing_rev: error
+      webhooks:
+          - id: test
+            cgi: $tempdir/cgi.sh
+      build:
+          - date
+EOF
+
+    my $action = _build(env => req_to_psgi(POST('/' => { foo => 'bar' })), config => $config);
+
+    my $cb = $action->run(project => 'test', provider => 'test');
+
+    my $cv = AnyEvent->condvar;
+
+    $cb->(sub { $cv->send(@_) });
+
+    my ($res) = $cv->recv;
+
+    is $res->[0], 400;
+    like $res->[2]->[0], qr/already exists/i;
+};
+
+subtest 'ignores build when rev exists' => sub {
+    _setup();
+
+    my $tempdir = tempdir();
+
+    my $existing_build = TestSetup->create_build(rev => '123');
+
+    TestSetup->write_file("$tempdir/cgi.sh", <<'EOF');
+#!/bin/sh
+
+STDIN=`cat`
+
+echo "Status: 200"
+echo "X-Crafty-Build-Rev: 123"
+echo "X-Crafty-Build-Ref: refs/heads/master"
+echo "X-Crafty-Build-Author: vti"
+echo "X-Crafty-Build-Message: fix"
+echo
+echo "ok"
+
+exit 0
+EOF
+    chmod 0755, "$tempdir/cgi.sh";
+
+    my $config = <<"EOF";
+---
+projects:
+    - id: test
+      existing_rev: ignore
+      webhooks:
+          - id: test
+            cgi: $tempdir/cgi.sh
+      build:
+          - date
+EOF
+
+    my $action = _build(env => req_to_psgi(POST('/' => { foo => 'bar' })), config => $config);
+
+    my $cb = $action->run(project => 'test', provider => 'test');
+
+    my $cv = AnyEvent->condvar;
+
+    $cb->(sub { $cv->send(@_) });
+
+    my ($res) = $cv->recv;
+
+    is $res->[0], 200;
+    like $res->[2]->[0], qr/ok/i;
+
+    my $builds = TestSetup->find_build();
+
+    is @$builds, 1;
+};
+
 subtest 'creates new build' => sub {
+    _setup();
+
     my $tempdir = tempdir();
 
     TestSetup->write_file("$tempdir/cgi.sh", <<'EOF');
@@ -118,24 +224,27 @@ EOF
     is $res->[0], 200;
     like $res->[2]->[0], qr/ok/i;
 
-    my $uuid = JSON::decode_json($res->[2]->[0])->{uuid};
+    my $builds = TestSetup->find_build();
 
-    my $build = TestSetup->load_build($uuid);
-
-    is $build->rev,     '123';
-    is $build->ref,     'refs/heads/master';
-    is $build->author,  'vti';
-    is $build->message, 'fix';
+    is @$builds, 1;
+    is $builds->[0]->rev,     '123';
+    is $builds->[0]->ref,     'refs/heads/master';
+    is $builds->[0]->author,  'vti';
+    is $builds->[0]->message, 'fix';
 };
 
 done_testing;
+
+sub _setup {
+    TestSetup->cleanup_db;
+}
 
 sub _build {
     my (%params) = @_;
 
     $params{cgi} //= 'cgi.sh';
 
-    my $config = <<"EOF";
+    my $config = delete($params{config}) // <<"EOF";
 ---
 projects:
     - id: test
@@ -146,5 +255,5 @@ projects:
           - date
 EOF
 
-    TestSetup->build_action('Webhook', env => {}, config => TestSetup->build_config($config), @_);
+    TestSetup->build_action('Webhook', env => {}, config => TestSetup->build_config($config), %params);
 }

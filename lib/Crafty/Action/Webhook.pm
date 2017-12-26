@@ -38,25 +38,44 @@ sub run {
     return sub {
         my $respond = shift;
 
-        my $build = Crafty::Build->new(
-            project => $project,
-            rev     => $rev,
-            ref     => $ref,
-            author  => $author,
-            message => $message
-        );
-
-        $build->init;
-
-        $self->db->save($build)->then(
+        $self->db->find(where => [ project => $project_config->{id}, rev => $rev ])->then(
             sub {
-                $self->pool->peek;
+                my ($builds) = @_;
 
-                $res->[2]->[0] = JSON::encode_json({ uuid => $build->uuid, content => $res->[2]->[0] });
+                if (@$builds) {
+                    if (my $existing_rev = $project_config->{existing_rev}) {
+                        if ($existing_rev eq 'ignore') {
+                            $respond->($res);
 
-                $respond->($res);
+                            return;
+                        }
+                        elsif ($existing_rev eq 'error') {
+                            $self->render(400, { error => 'Build with the same rev already exists' }, $respond);
+
+                            return;
+                        }
+                    }
+                }
+
+                my $build = Crafty::Build->new(
+                    project => $project,
+                    rev     => $rev,
+                    ref     => $ref,
+                    author  => $author,
+                    message => $message
+                );
+
+                $build->init;
+
+                $self->db->save($build)->then(
+                    sub {
+                        $self->pool->peek;
+
+                        $respond->($res);
+                    }
+                )->catch(sub { $self->handle_error(@_, $respond) });
             }
-        )->catch(sub { $self->handle_error(@_) });
+          );
     };
 }
 
