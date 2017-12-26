@@ -23,7 +23,7 @@ subtest 'error on unknown provider' => sub {
 subtest 'error on unknown project' => sub {
     my $action = _build(
         env => req_to_psgi POST(
-            '/' => { project => 'unknown', rev => '123', branch => 'master', author => 'vti', message => 'fix' }
+            '/' => { project => 'unknown', rev => '123', ref => 'refs/heads/master', author => 'vti', message => 'fix' }
         )
     );
 
@@ -36,7 +36,8 @@ subtest 'error on unknown project' => sub {
 subtest 'creates build from form' => sub {
     my $action = _build(
         env => req_to_psgi POST(
-            '/' => { project => 'my_project', rev => '123', branch => 'master', author => 'vti', message => 'fix' }
+            '/' =>
+              { project => 'my_project', rev => '123', ref => 'refs/heads/master', author => 'vti', message => 'fix' }
         )
     );
 
@@ -57,7 +58,7 @@ subtest 'creates build from form' => sub {
     is $build->status,    'I';
     is $build->project,   'my_project';
     is $build->rev,       '123';
-    is $build->branch,    'master';
+    is $build->ref,       'refs/heads/master';
     is $build->author,    'vti';
     is $build->message,   'fix';
     like $build->created, qr/^\d{4}-/;
@@ -84,7 +85,13 @@ subtest 'creates build from json' => sub {
         env => req_to_psgi POST(
             '/'     => 'Content-Type' => 'application/json',
             Content => JSON::encode_json(
-                { project => 'my_project', rev => '123', branch => 'master', author => 'vti', message => 'fix' }
+                {
+                    project => 'my_project',
+                    rev     => '123',
+                    ref     => 'refs/heads/master',
+                    author  => 'vti',
+                    message => 'fix'
+                }
             )
         )
     );
@@ -106,7 +113,7 @@ subtest 'creates build from json' => sub {
     is $build->status,    'I';
     is $build->project,   'my_project';
     is $build->rev,       '123';
-    is $build->branch,    'master';
+    is $build->ref,       'refs/heads/master';
     is $build->author,    'vti';
     is $build->message,   'fix';
     like $build->created, qr/^\d{4}-/;

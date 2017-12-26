@@ -12,7 +12,7 @@ sub build_validator {
 
     $validator->field('project')->required(1);
     $validator->field('rev')->required(1);
-    $validator->field('branch')->required(1);
+    $validator->field('ref')->required(1);
     $validator->field('message')->required(1);
     $validator->field('author')->required(1);
 

@@ -95,7 +95,7 @@ STDIN=`cat`
 
 echo "Status: 200"
 echo "X-Crafty-Build-Rev: 123"
-echo "X-Crafty-Build-Branch: master"
+echo "X-Crafty-Build-Ref: refs/heads/master"
 echo "X-Crafty-Build-Author: vti"
 echo "X-Crafty-Build-Message: fix"
 echo
@@ -123,7 +123,7 @@ EOF
     my $build = TestSetup->load_build($uuid);
 
     is $build->rev,     '123';
-    is $build->branch,  'master';
+    is $build->ref,     'refs/heads/master';
     is $build->author,  'vti';
     is $build->message, 'fix';
 };

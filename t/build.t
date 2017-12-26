@@ -150,7 +150,7 @@ subtest 'to_hash: serializes' => sub {
         project => 'my_project',
 
         rev     => '123',
-        branch  => 'master',
+        ref     => 'refs/heads/master',
         author  => 'vti',
         message => 'fix',
 
@@ -162,7 +162,7 @@ subtest 'to_hash: serializes' => sub {
 
         project => 'my_project',
         rev     => '123',
-        branch  => 'master',
+        ref     => 'refs/heads/master',
         author  => 'vti',
         message => 'fix',
 
@@ -206,7 +206,7 @@ sub _build {
         project => 'test',
 
         rev     => '123',
-        branch  => 'master',
+        ref     => 'refs/heads/master',
         author  => 'vti',
         message => 'fix',
 

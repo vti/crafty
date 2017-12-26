@@ -19,7 +19,7 @@
             <span class="glyphicon glyphicon-user"></span>
             {{author}}
 
-            {{rev}} {{branch}}
+            {{rev}} {{ref}}
         </div>
     </td>
     <td>

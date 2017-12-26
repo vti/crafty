@@ -29,11 +29,11 @@ sub run {
     return $res unless $res->[0] == 200;
 
     my $rev     = Plack::Util::header_get($res->[1], 'X-Crafty-Build-Rev');
-    my $branch  = Plack::Util::header_get($res->[1], 'X-Crafty-Build-Branch');
+    my $ref     = Plack::Util::header_get($res->[1], 'X-Crafty-Build-Ref');
     my $author  = Plack::Util::header_get($res->[1], 'X-Crafty-Build-Author');
     my $message = Plack::Util::header_get($res->[1], 'X-Crafty-Build-Message');
 
-    return $res unless $rev && $branch && $author && $message;
+    return $res unless $rev && $ref && $author && $message;
 
     return sub {
         my $respond = shift;
@@ -41,7 +41,7 @@ sub run {
         my $build = Crafty::Build->new(
             project => $project,
             rev     => $rev,
-            branch  => $branch,
+            ref     => $ref,
             author  => $author,
             message => $message
         );

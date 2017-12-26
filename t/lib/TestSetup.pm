@@ -79,12 +79,15 @@ sub build_db {
     if (!$db_file) {
         $db_file = File::Temp->new;
 
-        my $schema = do {
+        my $schema = '';
+
+        for my $file (glob 'schema/*.sql') {
             local $/;
-            open my $fh, '<', 'schema/00schema.sql' or die $!;
-            <$fh>;
-        };
-        my (@sql) = split /;/, $schema;
+            open my $fh, '<', $file or die $!;
+            $schema .= <$fh>;
+        }
+
+        my (@sql) = grep { !m/^--\s/ } split /;/, $schema;
 
         my $dbh = DBI->connect('dbi:SQLite:dbname=' . $db_file->filename);
         $dbh->do($_) for @sql;
@@ -148,7 +151,7 @@ sub create_build {
     my $build = Crafty::Build->new(
         project => 'test',
         rev     => '123',
-        branch  => 'master',
+        ref     => 'refs/heads/master',
         author  => 'vti',
         message => 'fix',
         @_

@@ -242,7 +242,7 @@ Example:
             "finished": "2017-05-02 11:43:49.924477+0200",
             "status_display": "success",
             "is_new": "",
-            "branch": "master",
+            "ref": "refs/heads/master",
             "project": "tu",
             "is_restartable": "1",
             "status_name": "Success",
@@ -287,7 +287,7 @@ Example:
             "finished": "2017-05-02 11:43:49.924477+0200",
             "status_display": "success",
             "is_new": "",
-            "branch": "master",
+            "ref": "refs/heads/master",
             "project": "tu",
             "is_restartable": "1",
             "status_name": "Success",
@@ -322,7 +322,7 @@ Required
 
 - project=[string]
 - rev=[string]
-- branch=[string]
+- ref=[string]
 - author=[string]
 - message=[string]
 
@@ -335,7 +335,7 @@ Required
 
 **Example**
 
-    $ curl http://localhost:5000/api/builds -d 'project=tu&rev=123&branch=master&author=vti&message=fix'
+    $ curl http://localhost:5000/api/builds -d 'project=tu&rev=123&ref=refs%2fheads%2fmaster&author=vti&message=fix'
 
 #### Cancel Build
 

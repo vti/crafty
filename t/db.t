@@ -74,7 +74,7 @@ subtest 'save: creates new build' => sub {
         status  => 'I',
         project => 'foo',
         rev     => '123',
-        branch  => 'master',
+        ref     => 'refs/heads/master',
         author  => 'vti',
         message => 'fix'
     );
@@ -104,9 +104,7 @@ subtest 'save: updates build' => sub {
 
     $cv->begin;
 
-    $db->save(
-        Crafty::Build->new(%{ $build->to_hash }, author => 'some new author'))
-      ->then(sub { $cv->end });
+    $db->save(Crafty::Build->new(%{ $build->to_hash }, author => 'some new author'))->then(sub { $cv->end });
 
     $build = TestSetup->load_build($build->uuid);
 
@@ -126,16 +124,13 @@ subtest 'save: fails when version not synced' => sub {
 
     $cv->begin;
 
-    $db->save(
-        Crafty::Build->new(%{ $build1->to_hash }, author => 'some new author'))
-      ->then(sub { $cv->end });
+    $db->save(Crafty::Build->new(%{ $build1->to_hash }, author => 'some new author'))->then(sub { $cv->end });
 
     $cv->begin;
 
     my $not_updated = 0;
-    $db->save(
-        Crafty::Build->new(%{ $build2->to_hash }, author => 'some new author'))
-      ->then(sub { $cv->end })->catch(sub { $not_updated++; $cv->end });
+    $db->save(Crafty::Build->new(%{ $build2->to_hash }, author => 'some new author'))->then(sub { $cv->end })
+      ->catch(sub { $not_updated++; $cv->end });
 
     $cv->wait;
 

@@ -90,7 +90,7 @@
             </div>
 
             <div>
-                <span class="glyphicon glyphicon-tag"></span> {{branch}}
+                <span class="glyphicon glyphicon-tag"></span> {{ref}}
             </div>
 
             {{/build}}

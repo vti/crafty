@@ -14,7 +14,7 @@ has 'started',  is => 'rw', predicate => 1;
 has 'finished', is => 'rw', predicate => 1;
 
 has 'rev',     is => 'ro', required => 1, predicate => 1;
-has 'branch',  is => 'ro', required => 1, predicate => 1;
+has 'ref',     is => 'ro', required => 1, predicate => 1;
 has 'author',  is => 'ro', required => 1, predicate => 1;
 has 'message', is => 'ro', required => 1, predicate => 1;
 
@@ -33,7 +33,7 @@ sub columns {
         'finished',
 
         'rev',
-        'branch',
+        'ref',
         'author',
         'message',
 
