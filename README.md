@@ -18,7 +18,7 @@ Crafty is a dead simple but useful for personal projects CI server.
 
 ## Demo
 
-Working demo is available at <http://crafty.showmetheco.de>.
+Working demo is available at <http://crafty.uptosmth.com>.
 
 ## Configuration (YAML)
 
